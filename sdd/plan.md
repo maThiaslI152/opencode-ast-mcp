@@ -79,5 +79,19 @@
   product/tech/plan sections appear progressively.
 - **Async I/O**: all I/O is currently synchronous. Worth converting if
   the agent ever wants to run multiple sandbox commands in parallel.
-- **Multi-language AST extraction** beyond Python/JavaScript/TypeScript
-  (the `ast_extractor._LANGUAGES` dict makes this a ~10-line change).
+- **v0.2.0 "Codebase Awareness" tools** (`list_files`,
+  `get_project_overview`, `search_symbol`, `find_references`) — the
+  plan is approved and locked, awaiting a "go" to start implementation.
+- **v0.3.0+ language expansion** — the AST extractor is designed for
+  incremental language additions (~5 lines + one pip dep per language,
+  see `AGENTS.md` → "Adding a new language to the AST extractor").
+  Candidate languages in priority order:
+  1. **Go** — `tree-sitter-go`, common in cloud/infra projects
+  2. **Rust** — `tree-sitter-rust`, growing in agentic-coding workloads
+  3. **Java** — `tree-sitter-java`, ubiquitous in enterprise
+  4. **C / C++** — `tree-sitter-c` / `tree-sitter-cpp`, systems work
+  5. **Ruby / PHP** — `tree-sitter-ruby` / `tree-sitter-php`, web backends
+
+  Each addition is self-contained: add the pip dep, extend
+  `_LANGUAGES`, add a `TestExtractor<Lang>` class, list the new
+  extension in `docs/TOOLS.md`. No changes to the rest of the system.
