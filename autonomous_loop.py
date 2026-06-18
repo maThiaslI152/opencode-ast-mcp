@@ -12,6 +12,7 @@ cycle inside the Podman sandbox with these safety guardrails:
 from __future__ import annotations
 
 import os
+import subprocess
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -39,6 +40,15 @@ class IterationLog:
     error_summary: str | None = None
     patch_applied: str | None = None
     duration_seconds: float = 0.0
+
+
+@dataclass
+class ApplyResult:
+    """Outcome of attempting to apply a unified-diff patch to the project tree."""
+
+    success: bool
+    stderr: str
+    method: str  # "git" | "patch" | "none"
 
 
 @dataclass
@@ -120,11 +130,47 @@ class AutonomousLoop:
 
         for i in range(1, self.max_iterations + 1):
             timestamp = datetime.now(timezone.utc).isoformat()
+            iter_start = time.monotonic()
 
-            # --- Apply patch if available ---
-            if previous_patch and i > 1:
-                # Write patch info for audit trail
+            # --- Apply patch from previous iteration (or initial_patch) ---
+            if previous_patch:
                 self._write_patch_log(step_name, i, previous_patch)
+                apply_result = self._apply_patch(previous_patch)
+
+                if not apply_result.success:
+                    # Code state is unknown after a failed apply. Skip the
+                    # test run and feed the apply error back to M3 as the
+                    # next context so it can propose a different patch.
+                    summary = (
+                        f"Patch application failed ({apply_result.method}): "
+                        f"{apply_result.stderr.strip()[:300]}"
+                    )
+                    log = IterationLog(
+                        iteration=i,
+                        timestamp=timestamp,
+                        test_passed=False,
+                        exit_code=-1,
+                        error_summary=summary,
+                        patch_applied=previous_patch,
+                        duration_seconds=round(time.monotonic() - iter_start, 3),
+                    )
+                    iteration_logs.append(log)
+                    last_error_summary = summary
+
+                    if self.m3_client and i < self.max_iterations:
+                        try:
+                            previous_patch = self.m3_client.generate_patch(
+                                context=context,
+                                error_summary=summary,
+                                previous_patch=previous_patch,
+                            )
+                        except Exception as e:
+                            previous_patch = None
+                            last_error_summary = f"M3 patch generation failed: {e}"
+
+                    if i < self.max_iterations:
+                        time.sleep(self.cooldown)
+                    continue
 
             # --- Execute test in sandbox ---
             sandbox_result: SandboxResult = self.sandbox.run(test_command)
@@ -149,6 +195,7 @@ class AutonomousLoop:
                     timestamp=timestamp,
                     test_passed=True,
                     exit_code=0,
+                    patch_applied=previous_patch,
                     duration_seconds=sandbox_result.duration_seconds,
                 )
                 iteration_logs.append(log)
@@ -286,6 +333,78 @@ class AutonomousLoop:
         safe_name = step_name.replace(" ", "_").lower()
         patch_file = patches_dir / f"{safe_name}_iter{iteration}.patch"
         patch_file.write_text(patch, encoding="utf-8")
+
+    def _apply_patch(self, patch_text: str) -> ApplyResult:
+        """Apply a unified-diff patch to the project tree.
+
+        Tries ``git apply`` first (cleanest error messages, handles fuzz,
+        rejects path-escapes). Falls back to ``patch -p1`` if the project
+        isn't a git repo or ``git`` isn't on ``PATH``.
+
+        Both runners are run with a 30-second timeout and a 5 MiB input
+        cap to defend against runaway M3 output.
+
+        Returns:
+            ApplyResult with ``success``, the captured ``stderr`` (truncated
+            to 2 KiB), and the ``method`` used ("git", "patch", or "none").
+        """
+        if not patch_text or not patch_text.strip():
+            return ApplyResult(success=False, stderr="empty patch", method="none")
+
+        project_root = str(get_project_root())
+
+        # Try git apply first — most robust, gives precise errors.
+        git_error = ""
+        try:
+            result = subprocess.run(
+                ["git", "apply", "--whitespace=nowarn", "-"],
+                input=patch_text[: 5 * 1024 * 1024],
+                capture_output=True,
+                text=True,
+                cwd=project_root,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                return ApplyResult(success=True, stderr="", method="git")
+            git_error = (result.stderr or result.stdout or "").strip()[:2048]
+        except FileNotFoundError:
+            git_error = "git not on PATH"
+        except subprocess.TimeoutExpired:
+            git_error = "git apply timed out after 30s"
+
+        # Fall back to POSIX patch -p1.
+        try:
+            result = subprocess.run(
+                ["patch", "-p1", "--batch", "--no-backup-if-mismatch"],
+                input=patch_text[: 5 * 1024 * 1024],
+                capture_output=True,
+                text=True,
+                cwd=project_root,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                return ApplyResult(success=True, stderr="", method="patch")
+            patch_error = (result.stderr or result.stdout or "").strip()[:2048]
+            return ApplyResult(
+                success=False,
+                stderr=patch_error or git_error,
+                method="patch",
+            )
+        except FileNotFoundError:
+            return ApplyResult(
+                success=False,
+                stderr=(
+                    f"Neither git apply nor patch -p1 worked. "
+                    f"git: {git_error}; patch: command not found"
+                ),
+                method="none",
+            )
+        except subprocess.TimeoutExpired:
+            return ApplyResult(
+                success=False,
+                stderr=f"patch -p1 timed out after 30s. git: {git_error}",
+                method="patch",
+            )
 
 
 # ------------------------------------------------------------------

@@ -204,25 +204,37 @@ Run a code → test → fix cycle for a single plan step.
 
 **When to use:** for each step in a `plan.md`, after the user has approved
 the plan. The loop runs the test, and on failure asks M3 for a patch
-(using `context` as ground truth), reapplies, and retries — up to
-`MAX_AUTONOMOUS_ITERATIONS` (5) times.
+(using `context` as ground truth), **applies that patch to the project
+tree** via `git apply` (with `patch -p1` as fallback), and retries — up
+to `MAX_AUTONOMOUS_ITERATIONS` (5) times.
+
+**Patch application flow:**
+
+1. Iteration N runs the test → fails.
+2. Loop compresses the error via Qwen and sends it to M3.
+3. M3 returns a unified-diff patch.
+4. The patch is written to `.opencode/patches/<step>_iter<N+1>.patch`
+   (audit trail) **and** applied to the project tree via `_apply_patch`.
+5. Iteration N+1 runs the test against the patched code.
+6. If the patch fails to apply (context mismatch, fuzz rejection,
+   path-escape attempt), the iteration is recorded as a patch-apply
+   failure (no test run, since the code state is unknown), the apply
+   error is fed back to M3, and the loop asks for a new patch.
 
 **Gotchas:**
-- M3 patches are **not** applied to the filesystem automatically — they are
-  stored on the next iteration's `previous_patch` and currently logged but
-  not written. (See "Limitations" below.)
+- M3 patches **are** applied to the filesystem between iterations. The
+  primary applier is `git apply` (cleanest error messages, handles
+  fuzz, rejects path-escapes); `patch -p1` is the fallback if `git`
+  isn't on `PATH`.
 - If M3 is unavailable (`MINIMAX_API_KEY` not set or 401), the loop still
   runs the test but never patches — it just reports the test result.
 - On circuit-breaker trip, `BLOCKED.md` is written to the project root.
   Delete it after manually fixing the issue.
 - `final_output` is truncated to 2000 chars to keep MCP responses small.
-
-**Limitations:**
-- The current implementation does **not** apply M3 patches to the
-  filesystem between iterations — it logs them via `_write_patch_log` for
-  audit. A follow-up enhancement is needed to actually `git apply` the
-  patch. This is a known gap; the loop is still useful for "test
-  passes" / "test fails" reporting.
+- Patches with path-escape attempts (e.g. `../../etc/passwd`) are
+  rejected by `git apply` and never reach the filesystem.
+- The sandbox image (`sandbox/Containerfile`) installs both `git` and
+  `patch` so the loop works in the container as well as on the host.
 
 ---
 

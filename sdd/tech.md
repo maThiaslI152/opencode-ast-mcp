@@ -75,7 +75,7 @@ For the **autonomous loop** the flow is longer (see
 | NEW | lm_client.py | LM Studio HTTP client, json_schema constraint for `analyze_node` |
 | NEW | m3_client.py | OpenAI-compatible client, `_strip_markdown_fence` fallback for SDD parsing |
 | NEW | sandbox_runner.py | Podman wrapper, `_validate_workspace` allow-list |
-| NEW | autonomous_loop.py | ReAct loop, `BLOCKED.md` writer, patch log writer |
+| NEW | autonomous_loop.py | ReAct loop, `BLOCKED.md` writer, patch log writer, `_apply_patch` (git apply → patch -p1) |
 | NEW | dummy_auth.py | Test fixture exercising `extract_function_code` |
 | NEW | tests/test_*.py | 35 pytest tests across 4 modules |
 | NEW | start.sh | Boot script, `lms server start` + `lms load` |

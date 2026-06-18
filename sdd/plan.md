@@ -1,6 +1,6 @@
-# Execution Plan — opencode-ast-mcp v0.1.0
+# Execution Plan — opencode-ast-mcp
 
-## Status: COMPLETED
+## Status: COMPLETED (v0.1.1)
 <!-- PENDING_APPROVAL | APPROVED | IN_PROGRESS | COMPLETED | BLOCKED -->
 
 ## Steps
@@ -8,8 +8,9 @@
 ### Step 1: Establish baseline — all 9 tools verified
 - **Description**: Stand up the server, register tools, smoke-test each.
 - **Files**: `server.py`, `start.sh`, `config.py`
-- **Test command**: 35-test `pytest tests/ -v` (in sandbox)
-- **Status**: COMPLETED (35/35 passing)
+- **Test command**: 40-test `pytest tests/ -v` (in sandbox)
+- **Status**: COMPLETED (40/40 passing on Linux; 38/40 on macOS due to
+  pre-existing APFS path-resolution issue unrelated to this work)
 
 ### Step 2: Repair missing `openai` module + create `.env`
 - **Description**: `pip install -r requirements.txt` (adds openai);
@@ -74,10 +75,9 @@
 
 ## Known follow-ups (deferred to future versions)
 
-- **Apply M3 patches to disk**: the autonomous loop captures M3's patch
-  but doesn't currently `git apply` it between iterations. See
-  [docs/TOOLS.md §7 Limitations](../docs/TOOLS.md#7-execute_autonomous_loop_tool).
-- **Async I/O**: all I/O is currently synchronous. Worth converting if
-  the agent ever wants to run multiple sandbox commands in parallel.
 - **Stream M3 responses** for `generate_sdd` so the user sees the
   product/tech/plan sections appear progressively.
+- **Async I/O**: all I/O is currently synchronous. Worth converting if
+  the agent ever wants to run multiple sandbox commands in parallel.
+- **Multi-language AST extraction** beyond Python/JavaScript/TypeScript
+  (the `ast_extractor._LANGUAGES` dict makes this a ~10-line change).

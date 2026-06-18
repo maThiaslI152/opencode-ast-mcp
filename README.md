@@ -140,15 +140,14 @@ All 9 tools validated end-to-end as of `v0.1.0`:
 | `analyze_node` | ✅ working (requires LM Studio) |
 | `compress_log` | ✅ working (requires LM Studio) |
 | `execute_in_sandbox` | ✅ working (35/35 pytest tests verified) |
-| `execute_autonomous_loop_tool` | ✅ working for the test+report path |
+| `execute_autonomous_loop_tool` | ✅ working (test, patch, apply, retry — all wired up) |
 | `generate_sdd` | ✅ working (OpenRouter + Claude Haiku) |
 | `get_loop_status` | ✅ working |
 
-**Known gap:** `execute_autonomous_loop_tool` runs the test, captures the
-result, and asks the brain for a patch, but does not yet apply that
-patch to the filesystem. Patches are written to `.opencode/patches/`
-for audit. Tracking in
-[docs/TOOLS.md §7](docs/TOOLS.md#7-execute_autonomous_loop_tool).
+As of `v0.1.1`, `execute_autonomous_loop_tool` actually applies M3's
+generated patches between iterations via `git apply` (with `patch -p1`
+as fallback). See [docs/TOOLS.md §7](docs/TOOLS.md#7-execute_autonomous_loop_tool)
+for the full apply-failure flow.
 
 ---
 

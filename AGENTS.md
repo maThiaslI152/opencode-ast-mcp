@@ -207,10 +207,11 @@ one, wire it to a `Makefile` or `tox.ini` target and document it here.
 - **Sandbox timeouts** are silent — check the `timed_out` field in the
   JSON response, not the exit code.
 - **The 1-hour idle timer** in `server.py:48` is intentional, not a bug.
-- **The current `autonomous_loop` does not apply M3's patches to disk.**
-  It logs them to `.opencode/patches/`. See
-  [docs/TOOLS.md](docs/TOOLS.md#7-execute_autonomous_loop_tool) — this
-  is a known gap.
+- **The current `autonomous_loop` does apply M3's patches to disk** via
+  `git apply` (fallback: `patch -p1`). Every patch attempt is also
+  logged to `.opencode/patches/` for audit. See
+  [docs/TOOLS.md](docs/TOOLS.md#7-execute_autonomous_loop_tool) for the
+  full apply-failure flow.
 - **`start.sh:18` `export $(grep ... | xargs)`** breaks on values with
   spaces. Keep `.env` values space-free.
 

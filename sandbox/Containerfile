@@ -2,8 +2,14 @@ FROM python:3.13-slim
 
 WORKDIR /workspace
 
-# Install common test frameworks
-RUN pip install --no-cache-dir pytest pytest-cov
+# Install common test frameworks + the tools the autonomous loop needs
+# to apply M3-generated patches (git apply is the primary, patch -p1 is
+# the fallback). Git is also used by the test suite itself for setting
+# up temp repos in TestPatchApplication.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git patch \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir pytest pytest-cov
 
 # The project workspace will be mounted at /workspace at runtime
 # via -v flag. DO NOT COPY project files into the image.

@@ -3,6 +3,52 @@
 All notable changes to `opencode-ast-mcp` are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] — 2026-06-18
+
+### Added
+- **Patch application between iterations** — `execute_autonomous_loop_tool`
+  now actually applies M3's generated patches to the project tree
+  between iterations. Closes the v0.1.0 known gap. The primary applier
+  is `git apply` (cleanest error messages, handles fuzz, rejects
+  path-escapes); `patch -p1` is the fallback if `git` isn't on `PATH`.
+- **`ApplyResult` dataclass** in `autonomous_loop.py` carries the
+  outcome of a patch-application attempt (`success`, `stderr`, `method`).
+- **`_apply_patch` method** on `AutonomousLoop` runs the unified-diff
+  applier with a 30-second timeout and a 5 MiB input cap.
+- **Patch-apply-failure handling** — when a patch can't be applied
+  (context mismatch, fuzz rejection, etc.), the loop records the
+  failure, skips the test run (code state is unknown), and feeds the
+  apply error back to M3 as the next context. The test runs again on
+  the next iteration with a fresh patch from M3.
+- **5 new tests** in `TestPatchApplication`:
+  - `test_real_patch_is_applied` — verifies a valid unified diff
+    actually modifies the file
+  - `test_invalid_patch_is_rejected` — garbage patches leave the file
+    untouched
+  - `test_empty_patch_is_rejected`
+  - `test_loop_records_patch_apply_failure` — verifies the loop's
+    behavior when M3's patches don't apply
+  - `test_loop_applies_initial_patch_before_first_test` — verifies the
+    `initial_patch` parameter works end-to-end
+- **`git` and `patch` installed in the sandbox image** —
+  `sandbox/Containerfile` now installs both, so the autonomous loop
+  can apply patches inside the container too (not just on the host).
+
+### Fixed
+- The v0.1.0 known gap where `execute_autonomous_loop_tool` generated
+  M3 patches but never applied them, so the test always ran against
+  unchanged code and the circuit breaker tripped after 5 broken
+  iterations.
+
+### Verified
+- 38/40 host tests pass (2 pre-existing macOS-only failures unrelated
+  to this change; see `tests/test_sandbox_runner.py`).
+- **40/40 sandbox tests pass** (the 2 macOS-only failures don't apply
+  on Linux).
+- All other tools (`get_file_skeleton`, `get_node`, `get_ast_json`,
+  `analyze_node`, `compress_log`, `execute_in_sandbox`,
+  `generate_sdd`, `get_loop_status`) still work.
+
 ## [0.1.0] — 2026-06-18
 
 ### Added
@@ -66,10 +112,6 @@ This project follows [Semantic Versioning](https://semver.org/).
 - The MCP server starts cleanly and self-terminates after 1 h of idle.
 
 ### Known limitations
-- `execute_autonomous_loop_tool` does not currently apply M3's
-  generated patches to the filesystem between iterations. Patches are
-  logged to `.opencode/patches/<step>_iter<N>.patch` for audit. See
-  [docs/TOOLS.md §7](docs/TOOLS.md#7-execute_autonomous_loop_tool).
 - All I/O is synchronous. No async/await. Fine for the current
   single-tool-call model.
 - No HTTP transport — stdio only.
