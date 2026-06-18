@@ -59,10 +59,15 @@ class M3Client:
         prompt = getattr(usage, "prompt_tokens", "?")
         completion = getattr(usage, "completion_tokens", "?")
         total = getattr(usage, "total_tokens", "?")
-        print(
-            f"[M3] tokens  prompt={prompt}  completion={completion}  total={total}",
-            file=sys.stderr,
-        )
+
+        details = getattr(usage, "completion_tokens_details", None)
+        reasoning = getattr(details, "reasoning_tokens", 0) if details else 0
+
+        parts = [f"prompt={prompt}  completion={completion}  total={total}"]
+        if reasoning:
+            parts.append(f"reasoning={reasoning}")
+
+        print(f"[M3] tokens  {'  '.join(parts)}", file=sys.stderr)
 
     # -----------------------------------------------------------------
     # Core chat method
@@ -74,6 +79,7 @@ class M3Client:
         system_prompt: str | None = None,
         temperature: float = 0.3,
         max_tokens: int = 4096,
+        extra_body: dict[str, Any] | None = None,
     ) -> str:
         """Send a chat completion and return the assistant's content string.
 
@@ -82,18 +88,24 @@ class M3Client:
             system_prompt: Optional system message prepended to *messages*.
             temperature: Sampling temperature.
             max_tokens: Maximum tokens in the response.
+            extra_body: Optional ``extra_body`` dict for provider-specific
+                        parameters (e.g. DeepSeek reasoning effort).
 
         Returns:
             The text content of the assistant's reply.
         """
         full_messages = self._build_messages(messages, system_prompt)
 
-        response = self._client.chat.completions.create(
-            model=self.model,
-            messages=full_messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": full_messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if extra_body:
+            kwargs["extra_body"] = extra_body
+
+        response = self._client.chat.completions.create(**kwargs)
 
         self._log_usage(response.usage)
         return response.choices[0].message.content or ""
@@ -190,6 +202,7 @@ class M3Client:
             system_prompt=system,
             temperature=0.3,
             max_tokens=4096,
+            extra_body=_reasoning_extra_body(self.model),
         )
 
         try:
@@ -258,7 +271,20 @@ class M3Client:
         return list(messages)
 
 
-def _strip_markdown_fence(text: str) -> str:
+def _reasoning_extra_body(model: str) -> dict[str, Any] | None:
+    """Build an ``extra_body`` dict for DeepSeek V4 reasoning mode.
+
+    Returns ``None`` for non-DeepSeek models so no extra params leak
+    into OpenRouter / OpenAI / ollama calls.
+    """
+    if not model.startswith("deepseek"):
+        return None
+
+    body: dict[str, Any] = {}
+    if config.DEEPSEEK_THINKING_MODE:
+        body["thinking"] = {"type": "enabled"}
+    body["reasoning_effort"] = config.DEEPSEEK_REASONING_EFFORT
+    return body
     """Remove a leading/trailing ```json (or ```) fence from *text*.
 
     Some chat models wrap JSON in a markdown code fence despite being told

@@ -40,6 +40,18 @@ MINIMAX_MODEL: str = os.getenv("MINIMAX_MODEL", "deepseek-v4-pro")
 - ollama:     "qwen2.5-coder:32b"  (set MINIMAX_API_KEY to "ollama")
 """
 
+DEEPSEEK_REASONING_EFFORT: str = os.getenv("DEEPSEEK_REASONING_EFFORT", "high")
+"""Reasoning effort for DeepSeek V4 models ("high" | "medium" | "low").
+Only used when MINIMAX_MODEL starts with ``deepseek``. Higher effort
+gives better planning at the cost of more tokens and latency."""
+
+DEEPSEEK_THINKING_MODE: bool = (
+    os.getenv("DEEPSEEK_THINKING_MODE", "true").lower() == "true"
+)
+"""Whether to enable DeepSeek V4's thinking mode (returns a reasoning
+trace alongside the response). The trace is visible in stderr logs but
+does not affect the JSON output consumed by generate_sdd."""
+
 # ---------------------------------------------------------------------------
 # LM Studio (Local Worker – Qwen 18B)
 # ---------------------------------------------------------------------------
