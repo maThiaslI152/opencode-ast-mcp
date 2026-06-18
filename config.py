@@ -32,9 +32,9 @@ be empty during local development."""
 MINIMAX_BASE_URL: str = os.getenv("MINIMAX_BASE_URL", "https://api.deepseek.com")
 """Base URL of the OpenAI-compatible endpoint. Defaults to DeepSeek."""
 
-MINIMAX_MODEL: str = os.getenv("MINIMAX_MODEL", "deepseek-chat")
-"""Model identifier. Defaults to DeepSeek V3 (deepseek-chat). Examples:
-- DeepSeek:   "deepseek-chat", "deepseek-reasoner"
+MINIMAX_MODEL: str = os.getenv("MINIMAX_MODEL", "deepseek-v4-pro")
+"""Model identifier. Defaults to DeepSeek V4 Pro. Examples:
+- DeepSeek:   "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat" (deprecated 2026/07/24)
 - OpenRouter: "anthropic/claude-3.5-haiku", "openai/gpt-4o", "qwen/qwen3-coder"
 - OpenAI:     "gpt-4o-mini"
 - ollama:     "qwen2.5-coder:32b"  (set MINIMAX_API_KEY to "ollama")

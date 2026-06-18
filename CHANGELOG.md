@@ -8,11 +8,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 ### Changed
 - **Default LLM brain provider** switched from OpenRouter to DeepSeek.
   - Default `MINIMAX_BASE_URL` → `https://api.deepseek.com`
-  - Default `MINIMAX_MODEL` → `deepseek-chat` (DeepSeek V3)
+  - Default `MINIMAX_MODEL` → `deepseek-v4-pro` (DeepSeek V4)
   - `.env.example` now shows all 4 providers (DeepSeek, OpenRouter,
     OpenAI, ollama) with copy-paste-ready config blocks.
   - The env-var names keep the historical `MINIMAX_*` prefix for
     backward compatibility.
+  - Note: `deepseek-chat` and `deepseek-reasoner` are deprecated by
+    DeepSeek and will stop working on 2026/07/24. Users still on those
+    models should switch to `deepseek-v4-pro` or `deepseek-v4-flash`.
   - OpenRouter / OpenAI / ollama remain fully supported — just
     uncomment the corresponding block in `.env`.
 

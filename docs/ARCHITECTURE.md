@@ -36,7 +36,7 @@
                                           │       │  (LLM Brain)     │
                                           │       │  OpenAI-compat,  │
                                           │       │  e.g. DeepSeek   │
-                                          │       │  + deepseek-chat │
+                                          │       │  + deepseek-v4-pro│
                                           │       └────────┬─────────┘
                                           │                │
                                           ▼                ▼
@@ -171,4 +171,4 @@ trashing the host filesystem.
   (DeepSeek, OpenRouter, OpenAI, local ollama, etc.) by changing
   `MINIMAX_BASE_URL` and `MINIMAX_MODEL` in `.env`. The env-var names
   keep the historical `MINIMAX_*` prefix for backward compatibility.
-  Defaults to DeepSeek V3 (`deepseek-chat`).
+  Defaults to DeepSeek V4 (`deepseek-v4-pro`).

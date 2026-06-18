@@ -69,7 +69,7 @@ or DeepSeek keys are rejected by `https://openrouter.ai/api/v1`.
 ### Cause: model not available on the provider
 **Symptom:** `Error code: 404 - The model 'deepseek-chat' does not exist` or similar.
 **Fix:** list the provider's models and pick one that exists:
-- DeepSeek: see https://platform.deepseek.com/api-docs (current: `deepseek-chat`, `deepseek-reasoner`)
+- DeepSeek: see https://platform.deepseek.com/api-docs (current: `deepseek-v4-pro`, `deepseek-v4-flash`; `deepseek-chat` / `deepseek-reasoner` deprecated 2026/07/24)
 - OpenRouter: `curl -H "Authorization: Bearer $MINIMAX_API_KEY" https://openrouter.ai/api/v1/models | jq '.data[].id'`
 - OpenAI: https://platform.openai.com/docs/models
 - ollama: `ollama list`

@@ -48,7 +48,7 @@ Set the following:
 |----------|-------------|------------|
 | `MINIMAX_API_KEY` | `generate_sdd`, autonomous-loop patching | Any OpenAI-compatible provider. Default config targets DeepSeek — sign up at https://platform.deepseek.com and create an API key (format: `sk-...`) |
 | `MINIMAX_BASE_URL` | `generate_sdd` | Default: `https://api.deepseek.com`. Override for OpenRouter / OpenAI / ollama |
-| `MINIMAX_MODEL` | `generate_sdd` | Default: `deepseek-chat` (DeepSeek V3). See `§9` for options |
+| `MINIMAX_MODEL` | `generate_sdd` | Default: `deepseek-v4-pro` (DeepSeek V4). Also: `deepseek-v4-flash` (faster/cheaper). Note: `deepseek-chat` and `deepseek-reasoner` are deprecated and will stop working 2026/07/24 |
 | `LM_STUDIO_BASE` | Qwen tools | Leave default (`http://localhost:1234/v1`) |
 | `LM_STUDIO_MODEL` | Qwen tools | Whatever model identifier LM Studio assigns |
 | `PODMAN_WORKSPACE` | Sandbox | Absolute path to this project |
@@ -178,9 +178,9 @@ in `.env` (the env-var names keep the historical `MINIMAX_*` prefix for
 backward compatibility):
 
 ```bash
-# DeepSeek (default) — V3 is a strong generalist for SDD planning
+# DeepSeek (default) — V4 Pro is the latest production model
 MINIMAX_BASE_URL=https://api.deepseek.com
-MINIMAX_MODEL=deepseek-chat   # or deepseek-reasoner (R1)
+MINIMAX_MODEL=deepseek-v4-pro   # or deepseek-v4-flash (faster/cheaper)
 MINIMAX_API_KEY=sk-...
 
 # OpenRouter — works with almost any model
@@ -207,7 +207,7 @@ To discover the model IDs your provider supports:
 - ollama: `ollama list`
 
 **Recommendation:** for SDD planning, use a model with at least 8B
-parameters and good structured-output ability (`deepseek-chat`,
+parameters and good structured-output ability (`deepseek-v4-pro`,
 `claude-3.5-haiku`, `gpt-4o-mini`, `qwen2.5-coder-32b` all work well).
 For patch generation, prefer code-specialised models
 (`qwen/qwen3-coder`, `qwen-2.5-coder-32b-instruct`).
