@@ -91,7 +91,7 @@ After MAX iterations:
 | File | Lines | Responsibility |
 |------|-------|----------------|
 | `server.py` | ~370 | FastMCP server, tool registration, idle timer, activity tracker |
-| `ast_extractor.py` | ~400 | tree-sitter parsing for .py / .js / .ts / .tsx |
+| `ast_extractor.py` | ~520 | tree-sitter parsing for 11 languages: .py / .js / .ts / .tsx / .go / .rs / .java / .c / .cpp / .rb / .php |
 | `lm_client.py` | ~240 | LM Studio HTTP client (Qwen 18B) — analysis, log compression, AST→JSON |
 | `m3_client.py` | ~250 | OpenAI-compatible client (DeepSeek by default) — SDD planning, patch generation |
 | `sandbox_runner.py` | ~250 | Podman container execution with workspace validation |

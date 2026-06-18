@@ -3,6 +3,41 @@
 All notable changes to `opencode-ast-mcp` are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-06-18
+
+### Added
+- **7 new language supports** — the AST extractor now handles 11 languages
+  (up from 4). Added: **Go**, **Rust**, **Java**, **C**, **C++**, **Ruby**,
+  **PHP**. Each language follows the same `tree-sitter-*` pattern — a
+  5-line `_LANGUAGES` entry with effortless fallback if the grammar isn't
+  installed.
+- **DeepSeek V4 reasoning mode** for `generate_sdd`:
+  - `DEEPSEEK_REASONING_EFFORT` env var (default `"high"`) — more
+    reasoning tokens for better SDD quality
+  - `DEEPSEEK_THINKING_MODE` env var (default `true`) — shows the
+    reasoning trace on stderr
+  - `_reasoning_extra_body()` helper in `m3_client.py` — only activates
+    when `MINIMAX_MODEL` starts with `"deepseek"`, so no params leak
+    to OpenRouter/OpenAI/ollama
+  - `_log_usage` now reports `reasoning=N` tokens to stderr
+
+### Changed
+- **`_get_identifier`** now handles identifier node types across all 11
+  languages: `identifier`, `property_identifier`, `type_identifier`,
+  `constant` (Ruby classes), `name` (PHP). Recurses only into known
+  name-container types (`type_spec`, `function_declarator`) to avoid
+  picking up return-type identifiers in C++.
+- **`_walk_identifier_nodes`** extended to match all 6 node types for
+  accurate cross-language `find_references`.
+- **`get_ast_json`** language name map extended from 4 to 11 extensions.
+
+### Verified
+- 71/73 host tests pass (2 pre-existing macOS APFS failures).
+- 14 new TestExtractor tests across Go/Rust/Java/C/C++/Ruby/PHP
+  — each language has skeleton + AST JSON tests.
+- `generate_sdd` with V4 reasoning produces richer SDD output
+  (2018 completion tokens, 267 reasoning tokens used).
+
 ## [0.2.1] — 2026-06-18
 
 ### Changed

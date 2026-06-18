@@ -158,9 +158,10 @@ ignore it. Try a higher-precision quant or a different model.
 ## AST tools (`get_file_skeleton`, `get_node`, `get_ast_json`)
 
 ### Cause: unsupported file extension
-**Symptom:** `Error: Unsupported file extension '.rs'. Supported: ['.py', '.js', '.ts', '.tsx']`.
-**Fix:** add a tree-sitter grammar to `requirements.txt` and extend
-`_LANGUAGES` in `ast_extractor.py`. See the `.js` entry for the pattern.
+**Symptom:** `Error: Unsupported file extension '.rs'. Supported: ['.py', '.js', '.ts', '.tsx', '.go', '.rs', '.java', '.c', '.cpp', '.rb', '.php']`.
+**Fix:** the 11 supported languages are listed above. Adding a new one
+is a ~5-line change — see `AGENTS.md` "Adding a new language to the
+AST extractor".
 
 ### Cause: file not found
 **Symptom:** `Error: File not found: ...` (from `get_file_skeleton`) or

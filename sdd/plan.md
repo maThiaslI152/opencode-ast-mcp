@@ -1,6 +1,6 @@
 # Execution Plan — opencode-ast-mcp
 
-## Status: COMPLETED (v0.2.0)
+## Status: COMPLETED (v0.3.0)
 <!-- PENDING_APPROVAL | APPROVED | IN_PROGRESS | COMPLETED | BLOCKED -->
 
 ## Steps

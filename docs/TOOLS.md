@@ -16,7 +16,7 @@ Return a compact outline of a file's top-level classes and functions.
 
 | Param | Type | Required | Notes |
 |-------|------|----------|-------|
-| `filepath` | string | yes | Absolute or relative path. Supported extensions: `.py`, `.js`, `.ts`, `.tsx` |
+| `filepath` | string | yes | Absolute or relative path. Supported: `.py`, `.js`, `.ts`, `.tsx`, `.go`, `.rs`, `.java`, `.c`/`.cpp`/`.h`, `.rb`, `.php` |
 
 **Returns:** human-readable string.
 
@@ -103,7 +103,9 @@ call after an edit — no background threads, no file-watcher.
 - Skips `.venv`, `venv`, `__pycache__`, `.git`, `node_modules`,
   `.pytest_cache`, `.opencode`, `dist`, `build`, `.mypy_cache`,
   `.ruff_cache`, `htmlcov`.
-- Source parsing limited to `.py`, `.js`, `.ts`, `.tsx`.
+- Source parsing limited to `.py`, `.js`, `.ts`, `.tsx`,
+  `.go`, `.rs`, `.java`, `.c`, `.cpp`/`.cc`/`.cxx`/`.hpp`/`.h`,
+  `.rb`, `.php` (11 languages total, v0.3.0).
 - Match results capped at 200 per call (response includes `truncated: true` if hit).
 
 ### 4. `list_files`
