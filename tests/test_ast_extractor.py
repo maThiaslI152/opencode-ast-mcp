@@ -155,3 +155,266 @@ class TestExtractorJavaScript:
         result = extractor.get_ast_json(js_file)
         assert result["language"] == "javascript"
         assert len(result["nodes"]) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Go (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def go_file(tmp_path):
+    p = tmp_path / "sample.go"
+    p.write_text(
+        """\
+package main
+
+func add(a, b int) int { return a + b }
+
+type Calculator struct { value int }
+
+func (c *Calculator) add(n int) int { c.value += n; return c.value }
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorGo:
+    def test_skeleton(self, go_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(go_file)
+        assert "def add(...)" in skeleton
+        assert "class Calculator:" in skeleton
+
+    def test_ast_json(self, go_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(go_file)
+        assert ast["language"] == "go"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "add" in names or "Calculator" in names
+
+
+# ---------------------------------------------------------------------------
+# Rust (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def rust_file(tmp_path):
+    p = tmp_path / "sample.rs"
+    p.write_text(
+        """\
+fn add(a: i32, b: i32) -> i32 { a + b }
+
+struct Calculator { value: i32 }
+
+impl Calculator {
+    fn add(&mut self, n: i32) -> i32 { self.value += n; self.value }
+}
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorRust:
+    def test_skeleton(self, rust_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(rust_file)
+        assert "def add(...)" in skeleton
+        assert "class Calculator:" in skeleton
+
+    def test_ast_json(self, rust_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(rust_file)
+        assert ast["language"] == "rust"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "add" in names or "Calculator" in names
+
+
+# ---------------------------------------------------------------------------
+# Java (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def java_file(tmp_path):
+    p = tmp_path / "Sample.java"
+    p.write_text(
+        """\
+public class Sample {
+    private int value;
+    public int getValue() { return value; }
+    public void setValue(int v) { this.value = v; }
+}
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorJava:
+    def test_skeleton(self, java_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(java_file)
+        assert "class Sample:" in skeleton
+
+    def test_ast_json(self, java_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(java_file)
+        assert ast["language"] == "java"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "Sample" in names
+
+
+# ---------------------------------------------------------------------------
+# C (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def c_file(tmp_path):
+    p = tmp_path / "sample.c"
+    p.write_text(
+        """\
+#include <stdio.h>
+
+int add(int a, int b) { return a + b; }
+
+struct Point { int x; int y; };
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorC:
+    def test_skeleton(self, c_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(c_file)
+        assert "def add(...)" in skeleton
+
+    def test_ast_json(self, c_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(c_file)
+        assert ast["language"] == "c"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "add" in names
+
+
+# ---------------------------------------------------------------------------
+# C++ (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def cpp_file(tmp_path):
+    p = tmp_path / "sample.cpp"
+    p.write_text(
+        """\
+#include <string>
+
+std::string greet(const std::string& name) {
+    return "Hello, " + name;
+}
+
+class Greeter {
+public:
+    std::string greet(const std::string& name) {
+        return "Hi, " + name;
+    }
+};
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorCpp:
+    def test_skeleton(self, cpp_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(cpp_file)
+        assert "def greet(...)" in skeleton
+        assert "class Greeter:" in skeleton
+
+    def test_ast_json(self, cpp_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(cpp_file)
+        assert ast["language"] == "cpp"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "greet" in names or "Greeter" in names
+
+
+# ---------------------------------------------------------------------------
+# Ruby (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def ruby_file(tmp_path):
+    p = tmp_path / "sample.rb"
+    p.write_text(
+        """\
+def add(a, b)
+  a + b
+end
+
+class Calculator
+  def add(a, b)
+    a + b
+  end
+end
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorRuby:
+    def test_skeleton(self, ruby_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(ruby_file)
+        assert "def add(...)" in skeleton
+        assert "class Calculator:" in skeleton
+
+    def test_ast_json(self, ruby_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(ruby_file)
+        assert ast["language"] == "ruby"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "add" in names or "Calculator" in names
+
+
+# ---------------------------------------------------------------------------
+# PHP (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def php_file(tmp_path):
+    p = tmp_path / "sample.php"
+    p.write_text(
+        """\
+<?php
+
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+class Calculator {
+    public function add(int $a, int $b): int {
+        return $a + $b;
+    }
+}
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorPhp:
+    def test_skeleton(self, php_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(php_file)
+        assert "def add(...)" in skeleton or "class Calculator:" in skeleton
+
+    def test_ast_json(self, php_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(php_file)
+        assert ast["language"] == "php"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "add" in names or "Calculator" in names

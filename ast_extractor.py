@@ -77,6 +77,120 @@ try:
 except ImportError:
     logger.info("tree-sitter-typescript not installed — .ts/.tsx files unsupported")
 
+# Go
+try:
+    import tree_sitter_go as tsgo
+
+    _LANGUAGES[".go"] = (
+        Language(tsgo.language()),
+        {
+            "function_node": "function_declaration",
+            "class_node": "type_declaration",
+            "method_node": "method_declaration",
+            "extra_nodes": ["type_spec"],
+        },
+    )
+except ImportError:
+    logger.info("tree-sitter-go not installed — .go files unsupported")
+
+# Rust
+try:
+    import tree_sitter_rust as tsrust
+
+    _LANGUAGES[".rs"] = (
+        Language(tsrust.language()),
+        {
+            "function_node": "function_item",
+            "class_node": "struct_item",
+            "method_node": "function_item",
+            "extra_nodes": ["enum_item", "impl_item", "trait_item", "mod_item"],
+        },
+    )
+except ImportError:
+    logger.info("tree-sitter-rust not installed — .rs files unsupported")
+
+# Java
+try:
+    import tree_sitter_java as tsjava
+
+    _LANGUAGES[".java"] = (
+        Language(tsjava.language()),
+        {
+            "function_node": "method_declaration",
+            "class_node": "class_declaration",
+            "method_node": "method_declaration",
+            "extra_nodes": ["constructor_declaration", "interface_declaration"],
+        },
+    )
+except ImportError:
+    logger.info("tree-sitter-java not installed — .java files unsupported")
+
+# C
+try:
+    import tree_sitter_c as tsc
+
+    _LANGUAGES[".c"] = (
+        Language(tsc.language()),
+        {
+            "function_node": "function_definition",
+            "class_node": "struct_specifier",
+            "method_node": "function_definition",
+            "extra_nodes": [],
+        },
+    )
+except ImportError:
+    logger.info("tree-sitter-c not installed — .c files unsupported")
+
+# C++
+try:
+    import tree_sitter_cpp as tscpp
+
+    _cpp_config = {
+        "function_node": "function_definition",
+        "class_node": "class_specifier",
+        "method_node": "function_definition",
+        "extra_nodes": ["struct_specifier", "namespace_definition"],
+    }
+    _LANGUAGES[".cpp"] = (Language(tscpp.language()), _cpp_config)
+    _LANGUAGES[".cc"] = (Language(tscpp.language()), _cpp_config)
+    _LANGUAGES[".cxx"] = (Language(tscpp.language()), _cpp_config)
+    _LANGUAGES[".hpp"] = (Language(tscpp.language()), _cpp_config)
+    _LANGUAGES[".h"] = (Language(tscpp.language()), _cpp_config)
+except ImportError:
+    logger.info("tree-sitter-cpp not installed — .cpp files unsupported")
+
+# Ruby
+try:
+    import tree_sitter_ruby as tsruby
+
+    _LANGUAGES[".rb"] = (
+        Language(tsruby.language()),
+        {
+            "function_node": "method",
+            "class_node": "class",
+            "method_node": "method",
+            "extra_nodes": ["module", "singleton_method"],
+        },
+    )
+except ImportError:
+    logger.info("tree-sitter-ruby not installed — .rb files unsupported")
+
+# PHP
+try:
+    import tree_sitter_php as tsphp
+
+    _LANGUAGES[".php"] = (
+        Language(tsphp.language_php()),
+        {
+            "function_node": "function_definition",
+            "class_node": "class_declaration",
+            "method_node": "method_declaration",
+            "extra_nodes": ["interface_declaration", "trait_declaration"],
+        },
+    )
+except ImportError:
+    logger.info("tree-sitter-php not installed — .php files unsupported")
+
 
 def detect_language(filepath: str) -> str:
     """Return the lowercase file extension (e.g. '.py', '.ts')."""
@@ -260,9 +374,12 @@ class ASTExtractor:
             return {"error": f"File not found: {file_path}"}
 
         ext = detect_language(file_path)
-        lang_name = {".py": "python", ".js": "javascript", ".ts": "typescript", ".tsx": "tsx"}.get(
-            ext, ext
-        )
+        lang_name = {
+            ".py": "python", ".js": "javascript", ".ts": "typescript", ".tsx": "tsx",
+            ".go": "go", ".rs": "rust", ".java": "java", ".c": "c",
+            ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".hpp": "cpp", ".h": "c",
+            ".rb": "ruby", ".php": "php",
+        }.get(ext, ext)
 
         tree = parser.parse(source_code)
         nodes: list[dict] = []
@@ -309,16 +426,53 @@ class ASTExtractor:
 
     @staticmethod
     def _get_identifier(node) -> str:
-        """Extract the identifier (name) from a definition node."""
+        """Extract the identifier (name) from a definition node.
+
+        First checks direct children for identifier-typed nodes. If not
+        found, recurses into known container types (Go's ``type_spec``,
+        C++'s ``function_declarator``, etc.) whose only purpose is to
+        wrap the name. Does NOT recurse into return-type containers
+        (``qualified_identifier``, ``primitive_type``, etc.).
+
+        Recognised identifier node types across all supported languages:
+        ``identifier``, ``property_identifier``, ``type_identifier``,
+        ``constant`` (Ruby classes), ``name`` (PHP).
+
+        Returns ``"?"`` if no identifier is found.
+        """
         for child in node.children:
-            if child.type == "identifier" or child.type == "property_identifier":
+            if child.type in (
+                "identifier", "property_identifier", "type_identifier",
+                "constant", "name",
+            ):
                 return child.text.decode("utf-8")
+
+        # Only recurse into containers that are known name-wrappers.
+        _NAME_CONTAINERS = {
+            "type_spec", "function_declarator",
+            "struct_item", "enum_item",
+        }
+        for child in node.children:
+            if child.type in _NAME_CONTAINERS:
+                name = ASTExtractor._get_identifier(child)
+                if name != "?":
+                    return name
         return "?"
 
     @staticmethod
     def _walk_identifier_nodes(node):
-        """Yield every identifier/property_identifier descendant of *node*."""
-        if node.type in ("identifier", "property_identifier"):
+        """Yield every identifier/property_identifier descendant of *node*.
+
+        Handles the identifier types used across all supported languages:
+        - Python/JS/TS/Java: ``identifier``, ``property_identifier``
+        - Go/Rust/C/C++:     ``type_identifier``, ``field_identifier``
+        - Ruby:              ``constant`` (class names)
+        - PHP:               ``name`` (class/function names)
+        """
+        if node.type in (
+            "identifier", "property_identifier", "type_identifier",
+            "field_identifier", "constant", "name",
+        ):
             yield node
         for child in node.children:
             yield from ASTExtractor._walk_identifier_nodes(child)

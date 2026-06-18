@@ -69,6 +69,17 @@ _LANGUAGE_NAME: dict[str, str] = {
     ".js": "javascript",
     ".ts": "typescript",
     ".tsx": "tsx",
+    ".go": "go",
+    ".rs": "rust",
+    ".java": "java",
+    ".c": "c",
+    ".cpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".hpp": "cpp",
+    ".h": "c",
+    ".rb": "ruby",
+    ".php": "php",
 }
 """Display name for each supported extension."""
 
