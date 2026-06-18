@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def test_mcp_tools_registered():
-    """Verify all 9 tools are registered on the MCP server."""
+    """Verify all 13 tools are registered on the MCP server."""
     from server import mcp
 
     # FastMCP stores tools internally — access them
@@ -32,13 +32,22 @@ def test_mcp_tools_registered():
         return
 
     expected_tools = [
+        # AST
         "get_file_skeleton",
         "get_node",
         "get_ast_json",
+        # Codebase awareness (v0.2.0)
+        "list_files",
+        "get_project_overview",
+        "search_symbol",
+        "find_references",
+        # Local LLM
         "analyze_node",
         "compress_log",
+        # Sandbox
         "execute_in_sandbox",
         "execute_autonomous_loop_tool",
+        # Orchestration
         "generate_sdd",
         "get_loop_status",
     ]

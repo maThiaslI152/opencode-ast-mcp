@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-The server exposes 9 tools. They are grouped by backing service.
+The server exposes **13 tools**. They are grouped by backing service.
 
 > **Note on returns:** the FastMCP transport wraps every return in
 > `{"result": "<string>"}`. Tools that return JSON encode it as a string,
@@ -87,6 +87,162 @@ ranges, param lists) for further programmatic processing.
 - Same scope as `get_file_skeleton` — top-level only.
 - `params` for Python includes typed/default params flattened to just the
   name (e.g. `x: int = 5` → `"x"`).
+
+---
+
+## Codebase Awareness Tools (recursive, mtime-cached)
+
+These four tools give the agent a project-wide view without making it
+load every file. They walk the project tree once, parse each
+supported-language file with tree-sitter, and cache the resulting AST
+keyed by `(path, mtime)`. The cache is invalidated lazily on the next
+call after an edit — no background threads, no file-watcher.
+
+**Scope:**
+- Recursive into the project root.
+- Skips `.venv`, `venv`, `__pycache__`, `.git`, `node_modules`,
+  `.pytest_cache`, `.opencode`, `dist`, `build`, `.mypy_cache`,
+  `.ruff_cache`, `htmlcov`.
+- Source parsing limited to `.py`, `.js`, `.ts`, `.tsx`.
+- Match results capped at 200 per call (response includes `truncated: true` if hit).
+
+### 4. `list_files`
+
+List files in the project matching a glob. Recursive by default. Skips
+noise directories. Does not filter by language — useful as a generic
+discovery step before deciding which language-specific tool to call.
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `pattern` | string | no | Default `"**/*"`. Examples: `"*.py"`, `"src/**/*.ts"`. |
+
+**Returns:** JSON `{"files": ["relative/path.py", ...]}` — sorted.
+
+**When to use:** first call when entering an unfamiliar project. Cheaper
+than `find` because it uses `pathlib.glob` and respects the skip-list
+out of the box.
+
+**Gotchas:**
+- Returns paths relative to the project root, not absolute.
+- Does not follow symlinks (Python's `pathlib.glob` default).
+- The skip-list is hardcoded; you can't pass an override (yet).
+
+---
+
+### 5. `get_project_overview`
+
+Return a top-level project map with per-file skeletons. For each
+supported-language file found, includes its path, language, size in
+bytes, and a compact skeleton (defs + classes).
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `depth` | int | no | Default `1`. Max path components relative to root. `1` = just project root; `2` = one level of subdirs. |
+
+**Returns:**
+```json
+{
+  "root": "/abs/path",
+  "files": [
+    {
+      "path": "server.py",
+      "language": "python",
+      "size": 12345,
+      "skeleton": "def foo(...)\nclass Bar:\n  def baz(...)"
+    }
+  ],
+  "truncated": false,
+  "scanned_files": 5
+}
+```
+
+**When to use:** when the agent needs a quick map of "what's in this
+project" before deciding which files to drill into. Cheaper than 50
+`get_file_skeleton` calls when mtime cache is warm.
+
+**Gotchas:**
+- Skips noise directories (see scope).
+- Skips files with unsupported extensions (`.md`, `.json`, etc.) — use
+  `list_files` if you need those.
+- `skeleton` is a string, not a list — split on `\n` for line-by-line
+  rendering.
+
+---
+
+### 6. `search_symbol`
+
+Find every top-level function/class/method named `name`. Walks every
+supported-language file and runs a tree-sitter-based name match.
+Optionally filter to a single language.
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | string | yes | Exact symbol name. |
+| `language` | string | no | Default `""` (all). One of `"python"`, `"javascript"`, `"typescript"`, `"tsx"`. |
+
+**Returns:**
+```json
+{
+  "matches": [
+    {"file": "server.py", "name": "get_file_skeleton", "type": "function", "start_line": 100, "end_line": 150}
+  ],
+  "truncated": false,
+  "scanned_files": 8
+}
+```
+
+`type` is one of `"function"`, `"method"`, `"class"`.
+
+**When to use:** before editing — find all the places a function is
+defined, then `get_node` the one you actually want to change. Faster
+than asking the agent to remember and `grep`.
+
+**Gotchas:**
+- Recurses into JS/TS `export_statement` and `lexical_declaration`
+  wrappers, so `export function login()` and `const bar = function() {}`
+  are discovered.
+- Returns the first 200 matches only. Common names like `main` will
+  hit the cap — set `language` to narrow.
+- The `name` is matched exactly, not as a substring. For partial
+  matches, use `find_references` or `grep` directly.
+
+---
+
+### 7. `find_references`
+
+Find every identifier reference to `name` via AST walking. Unlike
+`grep`, this skips string literals and comments because those aren't
+`identifier` nodes in the tree-sitter AST. Pass `filepath` to scope the
+search to one file; leave empty to scan the whole project.
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | string | yes | Exact identifier name. |
+| `filepath` | string | no | Default `""` (project-wide). Relative path to scope to one file. |
+
+**Returns:**
+```json
+{
+  "references": [
+    {"file": "server.py", "line": 42, "context": "    result = get_file_skeleton(...)"}
+  ],
+  "truncated": false,
+  "scanned_files": 8
+}
+```
+
+**When to use:** before refactoring — find every call site of a
+function you want to rename. Faster and more precise than `grep -n` for
+the same job.
+
+**Gotchas:**
+- Matches every identifier (parameter names, local variables, etc.),
+  not just function calls. Filter the result by `context` if you want
+  only call sites.
+- Returns the first 200 references. Common names will hit the cap —
+  scope with `filepath` to narrow.
+- The search is exact-match. For partial names (e.g. find all `*Error`
+  classes), use multiple `find_references` calls.
 
 ---
 
@@ -290,6 +446,12 @@ Need to read code?
   ├─ Whole file structure first  →  get_file_skeleton
   └─ Specific function/class     →  get_node (after skeleton)
   └─ Machine-readable structure   →  get_ast_json
+
+Need project-wide awareness?
+  ├─ List files in a directory    →  list_files
+  ├─ Quick project map            →  get_project_overview
+  ├─ Find function/class defs     →  search_symbol
+  └─ Find all references to a name →  find_references
 
 Need to understand code?
   ├─ Security / data-flow on a chunk  →  analyze_node (Qwen, local)

@@ -14,22 +14,24 @@
 
 ## Why this project
 
-A drop-in MCP server that gives your coding agent **9 specialised tools** —
-AST extraction without reading whole files, local code analysis via Qwen,
-cloud SDD planning via OpenRouter, and isolated test execution in Podman —
-so the agent spends its context window on *code*, not on boilerplate.
+A drop-in MCP server that gives your coding agent **13 specialised tools** —
+AST extraction without reading whole files, project-wide codebase awareness,
+local code analysis via Qwen, cloud SDD planning via OpenRouter, and
+isolated test execution in Podman — so the agent spends its context
+window on *code*, not on boilerplate.
 
 ---
 
 ## Features
 
-- **9 MCP tools** in a single Python server (FastMCP + stdio)
+- **13 MCP tools** in a single Python server (FastMCP + stdio)
 - **tree-sitter** AST extraction for Python, JavaScript, TypeScript, TSX
+- **Project-wide codebase awareness** — recursive file listing, overview with skeletons, cross-file symbol search, AST-aware reference finder (mtime-cached)
 - **Local LLM** analysis via LM Studio + Qwen 18B (no cloud for code review)
 - **Cloud planning** via any OpenAI-compatible endpoint (OpenRouter, OpenAI, ollama)
 - **Podman sandbox** for test execution with hardened mount validation
 - **Autonomous code→test→fix loop** with a 5-iteration circuit breaker
-- **35 pytest tests**, all runnable in the sandbox
+- **59 pytest tests**, all runnable in the sandbox
 
 ---
 
@@ -91,12 +93,16 @@ init): **[docs/SETUP.md](docs/SETUP.md)**. Something broken?
 | 1 | `get_file_skeleton` | tree-sitter | Compact outline of a file's top-level structure |
 | 2 | `get_node` | tree-sitter | Full source of a named function or class |
 | 3 | `get_ast_json` | tree-sitter | Structured JSON of a file's nodes |
-| 4 | `analyze_node` | LM Studio (Qwen) | Security / data-flow analysis of a code chunk |
-| 5 | `compress_log` | LM Studio (Qwen) | Summarise a verbose error log to ≤2 sentences |
-| 6 | `execute_in_sandbox` | Podman | Run a single shell command in a container |
-| 7 | `execute_autonomous_loop_tool` | Podman + Qwen + OpenRouter | Code → test → fix loop with circuit breaker |
-| 8 | `generate_sdd` | OpenRouter (default) | Generate product/tech/plan docs for a feature |
-| 9 | `get_loop_status` | local FS | Read `BLOCKED.md` if the circuit breaker tripped |
+| 4 | `list_files` | tree-sitter | Glob with skip-dir filtering |
+| 5 | `get_project_overview` | tree-sitter | Top-level project map with per-file skeletons |
+| 6 | `search_symbol` | tree-sitter | Find functions/classes/methods by name across project |
+| 7 | `find_references` | tree-sitter | AST-aware identifier reference search |
+| 8 | `analyze_node` | LM Studio (Qwen) | Security / data-flow analysis of a code chunk |
+| 9 | `compress_log` | LM Studio (Qwen) | Summarise a verbose error log to ≤2 sentences |
+| 10 | `execute_in_sandbox` | Podman | Run a single shell command in a container |
+| 11 | `execute_autonomous_loop_tool` | Podman + Qwen + OpenRouter | Code → test → fix loop with circuit breaker |
+| 12 | `generate_sdd` | OpenRouter (default) | Generate product/tech/plan docs for a feature |
+| 13 | `get_loop_status` | local FS | Read `BLOCKED.md` if the circuit breaker tripped |
 
 Full per-tool reference (params, returns, gotchas, decision tree):
 **[docs/TOOLS.md](docs/TOOLS.md)**
@@ -111,6 +117,7 @@ write access). The MCP tools map onto those modes as follows:
 | MCP tool | Side effects? | Plan mode | Build mode |
 |----------|---------------|-----------|------------|
 | `get_file_skeleton`, `get_node`, `get_ast_json` | None | ✅ | ✅ |
+| `list_files`, `get_project_overview`, `search_symbol`, `find_references` | Read-only file scan + parse | ✅ | ✅ |
 | `analyze_node` | LM Studio HTTP call | ✅ | ✅ |
 | `compress_log` | LM Studio HTTP call | ✅ | ✅ |
 | `get_loop_status` | Reads `BLOCKED.md` | ✅ | ✅ |
@@ -121,7 +128,10 @@ write access). The MCP tools map onto those modes as follows:
 `generate_sdd` is the bridge between the two modes: it runs entirely in
 plan mode (no file writes), produces the SDD artifacts the user reviews,
 and the user then flips to build mode for `execute_autonomous_loop_tool`
-to walk through `plan.md` step by step. See
+to walk through `plan.md` step by step. The 4 codebase-awareness tools
+(`list_files`, `get_project_overview`, `search_symbol`, `find_references`)
+are also read-only and can be used freely in plan mode to scope the
+investigation. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full request
 lifecycle and the four "Gotchas" (A: `os.sync()`, B: circuit breaker,
 C: thermal cooldown, D: mount validation) that make the system safe.
@@ -130,16 +140,20 @@ C: thermal cooldown, D: mount validation) that make the system safe.
 
 ## Project status
 
-All 9 tools validated end-to-end as of `v0.1.0`:
+All 13 tools validated end-to-end as of `v0.2.0`:
 
 | Tool | Status |
 |------|--------|
 | `get_file_skeleton` | ✅ working |
 | `get_node` | ✅ working |
 | `get_ast_json` | ✅ working |
+| `list_files` | ✅ working (v0.2.0) |
+| `get_project_overview` | ✅ working (v0.2.0) |
+| `search_symbol` | ✅ working (v0.2.0) |
+| `find_references` | ✅ working (v0.2.0) |
 | `analyze_node` | ✅ working (requires LM Studio) |
 | `compress_log` | ✅ working (requires LM Studio) |
-| `execute_in_sandbox` | ✅ working (35/35 pytest tests verified) |
+| `execute_in_sandbox` | ✅ working (59/59 pytest tests verified) |
 | `execute_autonomous_loop_tool` | ✅ working (test, patch, apply, retry — all wired up) |
 | `generate_sdd` | ✅ working (OpenRouter + Claude Haiku) |
 | `get_loop_status` | ✅ working |
@@ -155,10 +169,11 @@ for the full apply-failure flow.
 
 ```
 opencode-ast-mcp/
-├── server.py              # FastMCP entry point — registers 9 tools
+├── server.py              # FastMCP entry point — registers 13 tools
 ├── start.sh               # Boot script: starts LM Studio, runs server.py
 ├── config.py              # Centralised env-var configuration
 ├── ast_extractor.py       # tree-sitter powered skeleton/JSON/extract
+├── codebase_index.py      # Mtime-cached recursive project index (v0.2.0)
 ├── lm_client.py           # LM Studio HTTP client (Qwen 18B)
 ├── m3_client.py           # LLM brain client (OpenAI-compatible)
 ├── sandbox_runner.py      # Podman container execution + safety checks
@@ -168,15 +183,15 @@ opencode-ast-mcp/
 ├── LICENSE                # MIT
 ├── .env.example           # Template for .env
 ├── .github/
-│   ├── workflows/test.yml # CI: 35 pytest in Podman on every push/PR
+│   ├── workflows/test.yml # CI: 59 pytest in Podman on every push/PR
 │   └── dependabot.yml     # Dependabot for pip
 ├── sandbox/
-│   ├── Containerfile      # python:3.13-slim + pytest
+│   ├── Containerfile      # python:3.13-slim + pytest + git + patch
 │   └── compose.yaml       # Podman compose for the sandbox
 ├── sdd/                   # Project's own SDD (product/tech/plan.md)
 ├── prompts/
 │   └── system_prompt.md   # Brain orchestrator system prompt
-├── tests/                 # pytest suite (35 tests)
+├── tests/                 # pytest suite (59 tests)
 ├── docs/                  # ARCHITECTURE / TOOLS / SETUP / TROUBLESHOOTING
 ├── AGENTS.md              # Guidance for AI coding agents
 ├── CHANGELOG.md           # Release history

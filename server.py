@@ -1,11 +1,17 @@
 """Kiro-Opencode MCP Server — The Bridge.
 
-FastMCP server exposing 9 tools to OpenCode IDE:
+FastMCP server exposing 13 tools to OpenCode IDE:
 
 AST Tools (deterministic, instant):
   - get_file_skeleton: Compact structural outline of a file
   - get_node: Full source code of a named function/class
   - get_ast_json: Structured JSON AST representation
+
+Codebase Awareness Tools (recursive, mtime-cached):
+  - list_files: Glob with skip-dir filtering
+  - get_project_overview: Top-level project map with skeletons
+  - search_symbol: Find functions/classes/methods by name across project
+  - find_references: AST-aware identifier reference search
 
 Local LLM Tools (Qwen 18B via LM Studio):
   - analyze_node: Security & data-flow analysis of a code node
@@ -29,6 +35,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from ast_extractor import ASTExtractor
+from codebase_index import CodebaseIndex
 from lm_client import LMStudioClient
 from sandbox_runner import SandboxRunner, run_in_sandbox
 from config import get_project_root
@@ -68,6 +75,7 @@ mcp = FastMCP("opencode-ast")
 _extractor: ASTExtractor | None = None
 _lm_client: LMStudioClient | None = None
 _sandbox: SandboxRunner | None = None
+_codebase_index: CodebaseIndex | None = None
 
 
 def _get_extractor() -> ASTExtractor:
@@ -89,6 +97,13 @@ def _get_sandbox() -> SandboxRunner:
     if _sandbox is None:
         _sandbox = SandboxRunner()
     return _sandbox
+
+
+def _get_codebase_index() -> CodebaseIndex:
+    global _codebase_index
+    if _codebase_index is None:
+        _codebase_index = CodebaseIndex()
+    return _codebase_index
 
 
 # ===================================================================
@@ -162,7 +177,118 @@ def get_ast_json(filepath: str) -> str:
 
 
 # ===================================================================
-# Tool 4: analyze_node (Local LLM — Qwen 18B)
+# Tool 4: list_files (Codebase Awareness — recursive, mtime-cached)
+# ===================================================================
+
+@mcp.tool()
+@activity_tracker
+def list_files(pattern: str = "**/*") -> str:
+    """List files in the project matching a glob, with skip-dir filtering.
+
+    Recursive by default (``pattern="**/*"``). Skips ``.venv``, ``.git``,
+    ``node_modules``, ``__pycache__``, and other noise directories
+    (see ``codebase_index._SKIP_DIRS``). Returns paths relative to the
+    project root, sorted.
+
+    Args:
+        pattern: A glob pattern. Examples: ``"**/*"`` (recursive),
+                 ``"*.py"`` (root only), ``"src/**/*.ts"``.
+
+    Returns:
+        JSON string ``{"files": ["relative/path.py", ...]}``.
+    """
+    return json.dumps(
+        {"files": _get_codebase_index().list_files(pattern)}, indent=2
+    )
+
+
+# ===================================================================
+# Tool 5: get_project_overview (Codebase Awareness — recursive, mtime-cached)
+# ===================================================================
+
+@mcp.tool()
+@activity_tracker
+def get_project_overview(depth: int = 1) -> str:
+    """Return a top-level project map with per-file skeletons.
+
+    Walks the project tree to *depth* directory levels (depth=1 = just
+    the project root; depth=2 = one level of subdirectories too). For
+    each supported-language file found, includes its path, language,
+    size in bytes, and a compact skeleton (defs + classes).
+
+    Parsed ASTs are mtime-cached, so repeated calls on unchanged files
+    are O(1). Calling after editing a file re-parses only that file
+    on the next invocation.
+
+    Args:
+        depth: Maximum number of path components relative to root.
+
+    Returns:
+        JSON string with keys ``root``, ``files`` (list of file dicts
+        each with ``path``, ``language``, ``size``, ``skeleton``),
+        ``truncated`` (bool), ``scanned_files`` (int).
+    """
+    return json.dumps(_get_codebase_index().get_overview(depth), indent=2)
+
+
+# ===================================================================
+# Tool 6: search_symbol (Codebase Awareness — recursive, mtime-cached)
+# ===================================================================
+
+@mcp.tool()
+@activity_tracker
+def search_symbol(name: str, language: str = "") -> str:
+    """Find every top-level function/class/method named *name*.
+
+    Walks every supported-language file under the project root and runs
+    a tree-sitter-based name match. ``language`` filters to a single
+    language (``"python"``, ``"javascript"``, ``"typescript"``,
+    ``"tsx"``). Empty string = all supported languages.
+
+    Args:
+        name: Symbol name to search for (exact match).
+        language: Optional language filter. Pass ``""`` to search all.
+
+    Returns:
+        JSON string with ``matches`` (list of ``{file, name, type,
+        start_line, end_line}``), ``truncated`` (bool — true if capped
+        at 200), ``scanned_files`` (int).
+    """
+    lang = language or None
+    return json.dumps(_get_codebase_index().search_symbol(name, lang), indent=2)
+
+
+# ===================================================================
+# Tool 7: find_references (Codebase Awareness — recursive, mtime-cached)
+# ===================================================================
+
+@mcp.tool()
+@activity_tracker
+def find_references(name: str, filepath: str = "") -> str:
+    """Find every identifier reference to *name* via AST walking.
+
+    Unlike ``grep``, this skips string literals and comments because
+    those aren't ``identifier`` nodes in the tree-sitter AST. Pass
+    ``filepath`` to scope the search to one file; leave empty to scan
+    the whole project.
+
+    Args:
+        name: Identifier name to find (exact match).
+        filepath: Optional relative path to scope the search. ``""`` =
+                  project-wide.
+
+    Returns:
+        JSON string with ``references`` (list of ``{file, line,
+        context}``), ``truncated`` (bool), ``scanned_files`` (int).
+    """
+    path = filepath or None
+    return json.dumps(
+        _get_codebase_index().find_references(name, path), indent=2
+    )
+
+
+# ===================================================================
+# Tool 8: analyze_node (Local LLM — Qwen 18B)
 # ===================================================================
 
 @mcp.tool()

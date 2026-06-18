@@ -220,27 +220,8 @@ class ASTExtractor:
             return f"Error: File not found: {file_path}"
 
         tree = parser.parse(source_code)
-        lines: list[str] = []
-        func_type = config["function_node"]
-        class_type = config["class_node"]
-        method_type = config["method_node"]
-
-        for node in tree.root_node.children:
-            if node.type == class_type:
-                name = self._get_identifier(node)
-                lines.append(f"class {name}:")
-                # Find methods inside the class body
-                for child in node.children:
-                    if child.type == "block" or child.type == "class_body":
-                        for item in child.children:
-                            if item.type in (method_type, func_type):
-                                fn_name = self._get_identifier(item)
-                                lines.append(f"  def {fn_name}(...)")
-            elif node.type == func_type:
-                name = self._get_identifier(node)
-                lines.append(f"def {name}(...)")
-
-        return "\n".join(lines) if lines else "(empty skeleton)"
+        ext = detect_language(file_path)
+        return self.build_skeleton_from_tree(tree, source_code, ext)
 
     def get_ast_json(self, file_path: str) -> dict:
         """Return a structured JSON representation of the file's nodes.
@@ -333,6 +314,146 @@ class ASTExtractor:
             if child.type == "identifier" or child.type == "property_identifier":
                 return child.text.decode("utf-8")
         return "?"
+
+    @staticmethod
+    def _walk_identifier_nodes(node):
+        """Yield every identifier/property_identifier descendant of *node*."""
+        if node.type in ("identifier", "property_identifier"):
+            yield node
+        for child in node.children:
+            yield from ASTExtractor._walk_identifier_nodes(child)
+
+    @staticmethod
+    def build_skeleton_from_tree(tree, source: bytes, ext: str) -> str:
+        """Build the skeleton string from a pre-parsed tree.
+
+        Used by ``codebase_index`` to avoid re-parsing files whose AST is
+        already cached. Output format matches :meth:`get_skeleton`.
+        """
+        if ext not in _LANGUAGES:
+            return f"Error: Unsupported extension '{ext}'"
+        config = _LANGUAGES[ext][1]
+        lines: list[str] = []
+        func_type = config["function_node"]
+        class_type = config["class_node"]
+        method_type = config["method_node"]
+
+        for node in tree.root_node.children:
+            if node.type == class_type:
+                name = ASTExtractor._get_identifier(node)
+                lines.append(f"class {name}:")
+                for child in node.children:
+                    if child.type in ("block", "class_body"):
+                        for item in child.children:
+                            if item.type in (method_type, func_type):
+                                fn_name = ASTExtractor._get_identifier(item)
+                                lines.append(f"  def {fn_name}(...)")
+            elif node.type == func_type:
+                name = ASTExtractor._get_identifier(node)
+                lines.append(f"def {name}(...)")
+
+        return "\n".join(lines) if lines else "(empty skeleton)"
+
+    @staticmethod
+    def find_named_nodes(
+        tree, source: bytes, ext: str, name: str
+    ) -> list[dict[str, Any]]:
+        """Find all top-level functions/classes/methods named *name*.
+
+        Returns a list of dicts with ``name``, ``type`` ("function" /
+        "method" / "class"), ``start_line``, ``end_line``. The caller is
+        responsible for attaching the file path.
+
+        Recurses into ``export_statement`` and ``lexical_declaration``
+        wrappers (JS/TS) so that ``export function foo()`` and
+        ``const bar = function() {}`` are discovered.
+        """
+        if ext not in _LANGUAGES:
+            return []
+        config = _LANGUAGES[ext][1]
+        matches: list[dict[str, Any]] = []
+        func_type = config["function_node"]
+        class_type = config["class_node"]
+        method_type = config["method_node"]
+
+        def _visit(node, depth: int = 0) -> None:
+            """Walk the top level, recursing into export/lexical wrappers."""
+            if node.type == class_type:
+                cls_name = ASTExtractor._get_identifier(node)
+                if cls_name == name:
+                    matches.append(
+                        {
+                            "name": cls_name,
+                            "type": "class",
+                            "start_line": node.start_point[0] + 1,
+                            "end_line": node.end_point[0] + 1,
+                        }
+                    )
+                for child in node.children:
+                    if child.type in ("block", "class_body"):
+                        for item in child.children:
+                            if item.type in (method_type, func_type):
+                                m_name = ASTExtractor._get_identifier(item)
+                                if m_name == name:
+                                    matches.append(
+                                        {
+                                            "name": m_name,
+                                            "type": "method",
+                                            "start_line": item.start_point[0] + 1,
+                                            "end_line": item.end_point[0] + 1,
+                                        }
+                                    )
+            elif node.type == func_type:
+                fn_name = ASTExtractor._get_identifier(node)
+                if fn_name == name:
+                    matches.append(
+                        {
+                            "name": fn_name,
+                            "type": "function",
+                            "start_line": node.start_point[0] + 1,
+                            "end_line": node.end_point[0] + 1,
+                        }
+                    )
+            elif node.type in ("export_statement", "lexical_declaration"):
+                # JS/TS: recurse into the wrapper to find the function/class
+                # it contains.
+                for child in node.children:
+                    _visit(child, depth + 1)
+
+        for child in tree.root_node.children:
+            _visit(child)
+        return matches
+
+    @staticmethod
+    def find_identifier_references(
+        tree, source: bytes, ext: str, name: str
+    ) -> list[dict[str, Any]]:
+        """Find all identifier nodes whose text matches *name*.
+
+        Returns a list of dicts with ``line`` and ``context`` (the full
+        source line). The caller is responsible for attaching the file
+        path. Unlike ``grep``, this skips string literals and comments
+        because those aren't ``identifier`` nodes in the tree-sitter AST.
+        """
+        matches: list[dict[str, Any]] = []
+        for ident in ASTExtractor._walk_identifier_nodes(tree.root_node):
+            text = source[ident.start_byte : ident.end_byte].decode(
+                "utf-8", errors="replace"
+            )
+            if text != name:
+                continue
+            line_start = source.rfind(b"\n", 0, ident.start_byte) + 1
+            line_end = source.find(b"\n", ident.end_byte)
+            if line_end == -1:
+                line_end = len(source)
+            context = source[line_start:line_end].decode("utf-8", errors="replace")
+            matches.append(
+                {
+                    "line": ident.start_point[0] + 1,
+                    "context": context,
+                }
+            )
+        return matches
 
     @staticmethod
     def _get_params(func_node, source_code: bytes) -> list[str]:

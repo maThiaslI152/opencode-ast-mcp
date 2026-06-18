@@ -56,8 +56,8 @@ jobs:
                     | ./venv/bin/python server.py 2>/dev/null )
           tool_count=$(echo "$result" | grep -o '"name":"' | wc -l | tr -d ' ')
           echo "Discovered $tool_count tools"
-          if [ "$tool_count" -ne 9 ]; then
-            echo "::error::Expected 9 MCP tools, got $tool_count"
+          if [ "$tool_count" -ne 13 ]; then
+            echo "::error::Expected 13 MCP tools, got $tool_count"
             echo "$result"
             exit 1
           fi

@@ -27,10 +27,11 @@ different guidance — see below.
 ### How the tools map onto OpenCode's plan/build mode
 
 OpenCode itself has a **plan mode** (read-only) and a **build mode** (full
-write access). Of the 9 tools exposed by this server, only two are
+write access). Of the 13 tools exposed by this server, only two are
 side-effecting and must wait for build mode:
 
 - ✅ Allowed in **plan mode**: `get_file_skeleton`, `get_node`, `get_ast_json`,
+  `list_files`, `get_project_overview`, `search_symbol`, `find_references`,
   `analyze_node`, `compress_log`, `get_loop_status`, `generate_sdd`
 - ❌ Blocked in plan mode (use only in build mode): `execute_in_sandbox`,
   `execute_autonomous_loop_tool`
@@ -38,24 +39,37 @@ side-effecting and must wait for build mode:
 `generate_sdd` is the bridge between the two modes: it runs entirely in
 plan mode (no file writes), produces the SDD artifacts, and the user
 flips to build mode for the autonomous loop to walk through `plan.md`.
-See `README.md` → "How it works with OpenCode plan/build mode" for the
-full table.
+The 4 codebase-awareness tools (`list_files`, `get_project_overview`,
+`search_symbol`, `find_references`) are also read-only and may be used
+freely in plan mode to scope the investigation before any code is
+written. See `README.md` → "How it works with OpenCode plan/build mode"
+for the full table.
 
 ### Tool-selection rules (in priority order)
 
-1. **Before reading any file**, call `get_file_skeleton` first. It is
-   cheaper than reading the full file and lets you decide whether to
-   load the file at all.
-2. **To read a specific function or class**, call `get_node` with the
+1. **When entering an unfamiliar project**, call `get_project_overview`
+   first to see the top-level structure without reading any file. Or
+   `list_files("**/*.py")` if you want a quick file inventory.
+2. **Before reading any single file**, call `get_file_skeleton` first.
+   It is cheaper than reading the full file and lets you decide whether
+   to load the file at all.
+3. **To find a function or class by name across the project**, call
+   `search_symbol("name")` — faster than guessing files and cheaper
+   than asking the user.
+4. **To find all references to an identifier** (function calls,
+   variable uses) before refactoring, call `find_references("name")`.
+   It's AST-aware, so it skips string literals and comments that
+   `grep` would match.
+5. **To read a specific function or class**, call `get_node` with the
    exact name. Do not guess at the structure.
-3. **For security review or data-flow tracing** of a code chunk, use
+6. **For security review or data-flow tracing** of a code chunk, use
    `analyze_node` (local Qwen). Do not paste the code into the main
    context window if you can avoid it.
-4. **For verbose error output (>50 lines)**, call `compress_log` first,
+7. **For verbose error output (>50 lines)**, call `compress_log` first,
    then read the summary. Saves tokens.
-5. **For a single shell command**, use `execute_in_sandbox`. For a
+8. **For a single shell command**, use `execute_in_sandbox`. For a
    code→test→fix cycle, use `execute_autonomous_loop_tool`.
-6. **For architectural planning** of a new feature, use `generate_sdd`
+9. **For architectural planning** of a new feature, use `generate_sdd`
    and present the docs to the user for approval before writing code.
 
 ### Anti-patterns to avoid

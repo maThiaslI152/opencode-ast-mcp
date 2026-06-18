@@ -3,6 +3,67 @@
 All notable changes to `opencode-ast-mcp` are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] — 2026-06-18
+
+### Added
+- **4 new codebase-awareness MCP tools** (9 → 13 total):
+  - `list_files(pattern)` — glob with skip-dir filtering (recursive)
+  - `get_project_overview(depth)` — top-level project map with per-file
+    skeletons
+  - `search_symbol(name, language)` — find functions/classes/methods by
+    name across the project; recurses into JS/TS `export_statement` and
+    `lexical_declaration` wrappers
+  - `find_references(name, filepath)` — AST-aware identifier reference
+    search; skips string literals and comments (which `grep` would match)
+- **New `codebase_index.py` module** (~280 lines): the `CodebaseIndex`
+  class owns an mtime-keyed parsed-AST cache (1000 entries, FIFO
+  eviction) shared across all 4 tools. No background threads, no
+  file-watcher — every call revalidates the cache in O(1).
+- **3 new static methods on `ASTExtractor`**:
+  - `build_skeleton_from_tree(tree, source, ext)` — builds the skeleton
+    string from a pre-parsed tree, enabling cache reuse
+  - `find_named_nodes(tree, source, ext, name)` — top-level function /
+    class / method name search
+  - `find_identifier_references(tree, source, ext, name)` — walks
+    identifier nodes, returns line + context, skips string literals
+- **19 new tests** in `tests/test_codebase_index.py`:
+  - `TestListFiles` (4): recursive default, non-recursive pattern,
+    skip-dir filtering, no-match
+  - `TestProjectOverview` (4): depth=1, depth=2, mixed languages,
+    non-source-file exclusion
+  - `TestSearchSymbol` (4): find function, find class, language filter,
+    no-match
+  - `TestFindReferences` (4): single-file scope, project-wide, ignores
+    string literals, no-match
+  - `TestMtimeCache` (3): cache hit, invalidation after mtime change,
+    growth across distinct files
+- **Skip-dir filter** (hardcoded set, used by all 4 new tools):
+  `.venv`, `venv`, `__pycache__`, `.git`, `node_modules`,
+  `.pytest_cache`, `.opencode`, `dist`, `build`, `.mypy_cache`,
+  `.ruff_cache`, `htmlcov`.
+- **Match cap**: 200 per call for `search_symbol` and `find_references`
+  (response includes `truncated: true` if hit).
+- **`test_mcp_tools_registered` updated** from 9 → 13 in
+  `tests/test_integration.py`.
+- **CI workflow** updated to expect 13 tools.
+
+### Verified
+- **59/59 sandbox tests pass** (Linux).
+- **57/59 host tests pass** (2 pre-existing macOS APFS path-resolution
+  failures are unrelated to this change).
+- All 4 new tools smoke-tested via MCP stdio JSON-RPC:
+  - `search_symbol("execute_step")` → 1 match in `autonomous_loop.py:101`
+  - `find_references("_apply_patch", filepath="autonomous_loop.py")` →
+    2 references (definition + call site)
+- MCP `tools/list` now returns 13 tool definitions.
+
+### Scope
+- Recursive into the project root.
+- Skips the 12 hardcoded noise directories listed above.
+- Source parsing limited to `.py`, `.js`, `.ts`, `.tsx` (the languages
+  `ast_extractor` already supports). Adding Go/Rust/Java is a tracked
+  v0.3.0+ candidate — see `sdd/plan.md` "Known follow-ups".
+
 ## [0.1.1] — 2026-06-18
 
 ### Added
