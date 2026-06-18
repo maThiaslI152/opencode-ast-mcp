@@ -35,8 +35,8 @@
                                           │       │  m3_client       │
                                           │       │  (LLM Brain)     │
                                           │       │  OpenAI-compat,  │
-                                          │       │  e.g. OpenRouter │
-                                          │       │  + Claude Haiku  │
+                                          │       │  e.g. DeepSeek   │
+                                          │       │  + deepseek-chat │
                                           │       └────────┬─────────┘
                                           │                │
                                           ▼                ▼
@@ -93,7 +93,7 @@ After MAX iterations:
 | `server.py` | ~370 | FastMCP server, tool registration, idle timer, activity tracker |
 | `ast_extractor.py` | ~400 | tree-sitter parsing for .py / .js / .ts / .tsx |
 | `lm_client.py` | ~240 | LM Studio HTTP client (Qwen 18B) — analysis, log compression, AST→JSON |
-| `m3_client.py` | ~250 | OpenAI-compatible client (OpenRouter by default) — SDD planning, patch generation |
+| `m3_client.py` | ~250 | OpenAI-compatible client (DeepSeek by default) — SDD planning, patch generation |
 | `sandbox_runner.py` | ~250 | Podman container execution with workspace validation |
 | `autonomous_loop.py` | ~340 | ReAct loop, circuit breaker, BLOCKED.md writer |
 | `config.py` | ~70 | Env-var loader via python-dotenv, shared constants |
@@ -168,6 +168,7 @@ trashing the host filesystem.
   tree-sitter grammar + node-type config. See `.js` for the pattern.
 - **Add a sandbox image** — edit `sandbox/Containerfile` and rebuild.
 - **Swap the brain** — point `m3_client.py` at any OpenAI-compatible endpoint
-  (OpenRouter, OpenAI, local ollama, etc.) by changing `MINIMAX_BASE_URL` and
-  `MINIMAX_MODEL` in `.env`. The env-var names keep the historical `MINIMAX_*`
-  prefix for backward compatibility.
+  (DeepSeek, OpenRouter, OpenAI, local ollama, etc.) by changing
+  `MINIMAX_BASE_URL` and `MINIMAX_MODEL` in `.env`. The env-var names
+  keep the historical `MINIMAX_*` prefix for backward compatibility.
+  Defaults to DeepSeek V3 (`deepseek-chat`).

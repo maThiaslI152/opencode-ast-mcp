@@ -3,6 +3,27 @@
 All notable changes to `opencode-ast-mcp` are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] — 2026-06-18
+
+### Changed
+- **Default LLM brain provider** switched from OpenRouter to DeepSeek.
+  - Default `MINIMAX_BASE_URL` → `https://api.deepseek.com`
+  - Default `MINIMAX_MODEL` → `deepseek-chat` (DeepSeek V3)
+  - `.env.example` now shows all 4 providers (DeepSeek, OpenRouter,
+    OpenAI, ollama) with copy-paste-ready config blocks.
+  - The env-var names keep the historical `MINIMAX_*` prefix for
+    backward compatibility.
+  - OpenRouter / OpenAI / ollama remain fully supported — just
+    uncomment the corresponding block in `.env`.
+
+### Updated docs
+- `docs/SETUP.md` §3 and §9 — DeepSeek as default provider
+- `docs/TROUBLESHOOTING.md` — new diagnostics for DeepSeek key
+  format (`sk-...`) and model IDs (`deepseek-chat`,
+  `deepseek-reasoner`)
+- `README.md`, `docs/ARCHITECTURE.md`, `config.py` docstrings,
+  `m3_client.py` error message — all reflect DeepSeek as default
+
 ## [0.2.0] — 2026-06-18
 
 ### Added

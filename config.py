@@ -19,23 +19,25 @@ def get_project_root() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# LLM Brain (OpenAI-compatible — OpenRouter, OpenAI, ollama, etc.)
+# LLM Brain (OpenAI-compatible — DeepSeek, OpenRouter, OpenAI, ollama, etc.)
 # ---------------------------------------------------------------------------
 # Historical name "MINIMAX_*" is kept for env-var backward compatibility,
 # but the values now describe any OpenAI-compatible provider.
 
 MINIMAX_API_KEY: str = os.getenv("MINIMAX_API_KEY", "")
-"""API key for the LLM brain provider. Required for `generate_sdd` and the
-autonomous loop's auto-patching, but can be empty during local development."""
+"""API key for the LLM brain provider (DeepSeek, OpenRouter, OpenAI, etc.).
+Required for `generate_sdd` and the autonomous loop's auto-patching, but can
+be empty during local development."""
 
-MINIMAX_BASE_URL: str = os.getenv("MINIMAX_BASE_URL", "https://openrouter.ai/api/v1")
-"""Base URL of the OpenAI-compatible endpoint."""
+MINIMAX_BASE_URL: str = os.getenv("MINIMAX_BASE_URL", "https://api.deepseek.com")
+"""Base URL of the OpenAI-compatible endpoint. Defaults to DeepSeek."""
 
-MINIMAX_MODEL: str = os.getenv("MINIMAX_MODEL", "anthropic/claude-3.5-haiku")
-"""Model identifier to use when calling the brain. Examples:
-- OpenRouter: "anthropic/claude-3.5-haiku", "openai/gpt-4o-mini", "qwen/qwen3-coder"
+MINIMAX_MODEL: str = os.getenv("MINIMAX_MODEL", "deepseek-chat")
+"""Model identifier. Defaults to DeepSeek V3 (deepseek-chat). Examples:
+- DeepSeek:   "deepseek-chat", "deepseek-reasoner"
+- OpenRouter: "anthropic/claude-3.5-haiku", "openai/gpt-4o", "qwen/qwen3-coder"
 - OpenAI:     "gpt-4o-mini"
-- ollama:     "llama3.1"  (set MINIMAX_API_KEY to any non-empty string)
+- ollama:     "qwen2.5-coder:32b"  (set MINIMAX_API_KEY to "ollama")
 """
 
 # ---------------------------------------------------------------------------

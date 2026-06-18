@@ -46,9 +46,9 @@ Set the following:
 
 | Variable | Required for | How to get |
 |----------|-------------|------------|
-| `MINIMAX_API_KEY` | `generate_sdd`, autonomous-loop patching | Any OpenAI-compatible provider. Default config targets OpenRouter — sign up at https://openrouter.ai and create a key |
-| `MINIMAX_BASE_URL` | `generate_sdd` | Default: `https://openrouter.ai/api/v1`. Override for OpenAI / ollama |
-| `MINIMAX_MODEL` | `generate_sdd` | Default: `anthropic/claude-3.5-haiku`. See `§9` for options |
+| `MINIMAX_API_KEY` | `generate_sdd`, autonomous-loop patching | Any OpenAI-compatible provider. Default config targets DeepSeek — sign up at https://platform.deepseek.com and create an API key (format: `sk-...`) |
+| `MINIMAX_BASE_URL` | `generate_sdd` | Default: `https://api.deepseek.com`. Override for OpenRouter / OpenAI / ollama |
+| `MINIMAX_MODEL` | `generate_sdd` | Default: `deepseek-chat` (DeepSeek V3). See `§9` for options |
 | `LM_STUDIO_BASE` | Qwen tools | Leave default (`http://localhost:1234/v1`) |
 | `LM_STUDIO_MODEL` | Qwen tools | Whatever model identifier LM Studio assigns |
 | `PODMAN_WORKSPACE` | Sandbox | Absolute path to this project |
@@ -178,15 +178,20 @@ in `.env` (the env-var names keep the historical `MINIMAX_*` prefix for
 backward compatibility):
 
 ```bash
-# OpenRouter (default) — works with almost any model
+# DeepSeek (default) — V3 is a strong generalist for SDD planning
+MINIMAX_BASE_URL=https://api.deepseek.com
+MINIMAX_MODEL=deepseek-chat   # or deepseek-reasoner (R1)
+MINIMAX_API_KEY=sk-...
+
+# OpenRouter — works with almost any model
 MINIMAX_BASE_URL=https://openrouter.ai/api/v1
-MINIMAX_MODEL=anthropic/claude-3.5-haiku   # or claude-3.5-sonnet, gpt-4o, qwen3-coder, …
-MINIMAX_API_KEY=sk-or-v1-…
+MINIMAX_MODEL=anthropic/claude-3.5-haiku
+MINIMAX_API_KEY=sk-or-v1-...
 
 # OpenAI
 MINIMAX_BASE_URL=https://api.openai.com/v1
 MINIMAX_MODEL=gpt-4o-mini
-MINIMAX_API_KEY=sk-…
+MINIMAX_API_KEY=sk-...
 
 # Local ollama
 MINIMAX_BASE_URL=http://localhost:11434/v1
@@ -196,15 +201,13 @@ MINIMAX_API_KEY=ollama   # ollama ignores the value but the field must be non-em
 
 To discover the model IDs your provider supports:
 
+- DeepSeek: see https://platform.deepseek.com/api-docs
 - OpenRouter: `curl -H "Authorization: Bearer $MINIMAX_API_KEY" https://openrouter.ai/api/v1/models | jq '.data[].id'`
-- OpenAI: see https://platform.openai.com/docs/models
+- OpenAI: https://platform.openai.com/docs/models
 - ollama: `ollama list`
 
 **Recommendation:** for SDD planning, use a model with at least 8B
-parameters and good structured-output ability (`claude-3.5-haiku`,
-`gpt-4o-mini`, `qwen2.5-coder-32b` all work well). For patch generation,
-prefer code-specialised models (`qwen/qwen3-coder`,
-`qwen-2.5-coder-32b-instruct`).
-
-The tool names in `server.py` and the SDD prompts in `m3_client.py` are
-provider-agnostic. The JSON contract (`product/tech/plan`) is standard.
+parameters and good structured-output ability (`deepseek-chat`,
+`claude-3.5-haiku`, `gpt-4o-mini`, `qwen2.5-coder-32b` all work well).
+For patch generation, prefer code-specialised models
+(`qwen/qwen3-coder`, `qwen-2.5-coder-32b-instruct`).

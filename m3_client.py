@@ -37,8 +37,8 @@ class M3Client:
             raise ValueError(
                 "LLM brain API key is not set. "
                 "Set the MINIMAX_API_KEY environment variable or pass api_key= to M3Client(). "
-                "Works with OpenRouter (https://openrouter.ai/), OpenAI, or any OpenAI-compatible "
-                "endpoint — see .env.example for configuration."
+                "Works with DeepSeek (https://platform.deepseek.com), OpenRouter, OpenAI, "
+                "or any OpenAI-compatible endpoint — see .env.example for configuration."
             )
 
         self.model = model or config.MINIMAX_MODEL

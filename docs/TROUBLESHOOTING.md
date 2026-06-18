@@ -58,17 +58,18 @@ re-spawn it (or run `./start.sh` manually).
 `[M3] tokens  prompt=?  completion=?  total=?`.
 
 ### Cause: wrong provider for the key type
-**Symptom:** `sk-or-...` keys are rejected by `https://api.minimax.io/v1`,
-or OpenAI keys are rejected by `https://openrouter.ai/api/v1`.
+**Symptom:** `sk-or-...` keys are rejected by `https://api.deepseek.com`,
+or DeepSeek keys are rejected by `https://openrouter.ai/api/v1`.
 **Fix:** the key prefix tells you the provider:
+- `sk-...` (new, short) → DeepSeek or OpenAI → set `MINIMAX_BASE_URL` to the matching endpoint
 - `sk-or-v1-...` → OpenRouter → set `MINIMAX_BASE_URL=https://openrouter.ai/api/v1`
-- `sk-...` (without `-or-`) → OpenAI → set `MINIMAX_BASE_URL=https://api.openai.com/v1`
-- `eyJ...` → MiniMax → keep `MINIMAX_BASE_URL=https://api.minimax.io/v1`
+- `sk-...` (older/longer) → OpenAI → set `MINIMAX_BASE_URL=https://api.openai.com/v1`
 **Verify:** `./venv/bin/python -c "import config; print(config.MINIMAX_API_KEY[:6], config.MINIMAX_BASE_URL)"`.
 
 ### Cause: model not available on the provider
-**Symptom:** `Error code: 404 - No endpoints found for <model-id>`.
+**Symptom:** `Error code: 404 - The model 'deepseek-chat' does not exist` or similar.
 **Fix:** list the provider's models and pick one that exists:
+- DeepSeek: see https://platform.deepseek.com/api-docs (current: `deepseek-chat`, `deepseek-reasoner`)
 - OpenRouter: `curl -H "Authorization: Bearer $MINIMAX_API_KEY" https://openrouter.ai/api/v1/models | jq '.data[].id'`
 - OpenAI: https://platform.openai.com/docs/models
 - ollama: `ollama list`

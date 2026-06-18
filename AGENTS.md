@@ -215,8 +215,8 @@ one, wire it to a `Makefile` or `tox.ini` target and document it here.
 - **`generate_sdd` 500** is almost always missing `openai` module
   (run `pip install -r requirements.txt`) or missing `MINIMAX_API_KEY`
   in `.env`. A 401 ("login fail") usually means the key prefix doesn't
-  match the provider — `sk-or-v1-…` is OpenRouter, plain `sk-…` is
-  OpenAI, `eyJ…` is MiniMax. See
+  match the provider — `sk-…` is DeepSeek/OpenAI, `sk-or-v1-…` is
+  OpenRouter. The default provider is DeepSeek (`deepseek-chat`). See
   [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 - **Sandbox timeouts** are silent — check the `timed_out` field in the
   JSON response, not the exit code.

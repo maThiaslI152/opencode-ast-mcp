@@ -16,9 +16,9 @@
 
 A drop-in MCP server that gives your coding agent **13 specialised tools** —
 AST extraction without reading whole files, project-wide codebase awareness,
-local code analysis via Qwen, cloud SDD planning via OpenRouter, and
-isolated test execution in Podman — so the agent spends its context
-window on *code*, not on boilerplate.
+local code analysis via Qwen, cloud SDD planning via DeepSeek (or any
+OpenAI-compatible endpoint), and isolated test execution in Podman — so the
+agent spends its context window on *code*, not on boilerplate.
 
 ---
 
@@ -28,7 +28,7 @@ window on *code*, not on boilerplate.
 - **tree-sitter** AST extraction for Python, JavaScript, TypeScript, TSX
 - **Project-wide codebase awareness** — recursive file listing, overview with skeletons, cross-file symbol search, AST-aware reference finder (mtime-cached)
 - **Local LLM** analysis via LM Studio + Qwen 18B (no cloud for code review)
-- **Cloud planning** via any OpenAI-compatible endpoint (OpenRouter, OpenAI, ollama)
+- **Cloud planning** via any OpenAI-compatible endpoint (default: DeepSeek, works with OpenRouter, OpenAI, ollama)
 - **Podman sandbox** for test execution with hardened mount validation
 - **Autonomous code→test→fix loop** with a 5-iteration circuit breaker
 - **59 pytest tests**, all runnable in the sandbox
@@ -101,7 +101,7 @@ init): **[docs/SETUP.md](docs/SETUP.md)**. Something broken?
 | 9 | `compress_log` | LM Studio (Qwen) | Summarise a verbose error log to ≤2 sentences |
 | 10 | `execute_in_sandbox` | Podman | Run a single shell command in a container |
 | 11 | `execute_autonomous_loop_tool` | Podman + Qwen + OpenRouter | Code → test → fix loop with circuit breaker |
-| 12 | `generate_sdd` | OpenRouter (default) | Generate product/tech/plan docs for a feature |
+| 12 | `generate_sdd` | DeepSeek (default) | Generate product/tech/plan docs for a feature |
 | 13 | `get_loop_status` | local FS | Read `BLOCKED.md` if the circuit breaker tripped |
 
 Full per-tool reference (params, returns, gotchas, decision tree):
@@ -155,7 +155,7 @@ All 13 tools validated end-to-end as of `v0.2.0`:
 | `compress_log` | ✅ working (requires LM Studio) |
 | `execute_in_sandbox` | ✅ working (59/59 pytest tests verified) |
 | `execute_autonomous_loop_tool` | ✅ working (test, patch, apply, retry — all wired up) |
-| `generate_sdd` | ✅ working (OpenRouter + Claude Haiku) |
+| `generate_sdd` | ✅ working (DeepSeek — or any OpenAI-compatible provider) |
 | `get_loop_status` | ✅ working |
 
 As of `v0.1.1`, `execute_autonomous_loop_tool` actually applies M3's
@@ -254,5 +254,6 @@ checklist and **[SECURITY.md](SECURITY.md)** for private disclosure.
   — local inference for per-function code review
 - [Anthropic Claude](https://www.anthropic.com) via
   [OpenRouter](https://openrouter.ai) — cloud-side SDD planning
+- [DeepSeek](https://platform.deepseek.com) — default brain provider (open-source, OpenAI-compatible, strong structured output)
 - [Podman](https://podman.io) — rootless container isolation
 - [FastMCP](https://github.com/jlowin/fastmcp) — the Python MCP server SDK
