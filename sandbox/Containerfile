@@ -1,0 +1,12 @@
+FROM python:3.13-slim
+
+WORKDIR /workspace
+
+# Install common test frameworks
+RUN pip install --no-cache-dir pytest pytest-cov
+
+# The project workspace will be mounted at /workspace at runtime
+# via -v flag. DO NOT COPY project files into the image.
+
+# Default to bash for interactive use
+CMD ["bash"]

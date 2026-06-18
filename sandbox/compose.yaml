@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  opencode-sandbox:
+    # Use the image defined in the environment or default to latest
+    image: ${PODMAN_IMAGE:-opencode-sandbox:latest}
+    build:
+      context: ..
+      dockerfile: sandbox/Containerfile
+    # Mount the workspace defined by the orchestrator
+    volumes:
+      - ${PODMAN_WORKSPACE}:/workspace:rw
+    working_dir: /workspace
+    # Default command (overridden during `run`)
+    command: bash

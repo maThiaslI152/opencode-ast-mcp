@@ -1,0 +1,63 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pytest-sandbox:
+    name: pytest in Podman sandbox (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13"]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Podman + podman-compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman podman-compose
+
+      - name: Initialise and start the Podman machine (rootless)
+        run: |
+          podman machine init || true
+          podman machine start
+
+      - name: Build the opencode-sandbox image
+        run: podman compose -f sandbox/compose.yaml build
+
+      - name: Run the 35-test pytest suite inside the sandbox
+        run: |
+          podman compose -f sandbox/compose.yaml run --rm opencode-sandbox \
+            bash -c "cd /workspace && pip install -q -r requirements.txt && python -m pytest tests/ -v"
+
+      - name: Verify MCP server boots and registers all 9 tools
+        run: |
+          ./venv/bin/python -m pip install -q -r requirements.txt
+          result=$( ( echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' ; \
+                      sleep 1 ; \
+                      echo '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' ; \
+                      sleep 2 ) \
+                    | ./venv/bin/python server.py 2>/dev/null )
+          tool_count=$(echo "$result" | grep -o '"name":"' | wc -l | tr -d ' ')
+          echo "Discovered $tool_count tools"
+          if [ "$tool_count" -ne 9 ]; then
+            echo "::error::Expected 9 MCP tools, got $tool_count"
+            echo "$result"
+            exit 1
+          fi
