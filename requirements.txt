@@ -14,5 +14,5 @@ tree-sitter-latex @ git+https://github.com/latex-lsp/tree-sitter-latex.git
 requests>=2.31.0
 httpx>=0.27.0
 python-dotenv>=1.0.0
-openai>=1.30.0
+openai>=2.43.0
 pydantic>=2.0.0
