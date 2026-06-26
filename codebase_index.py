@@ -23,7 +23,8 @@ Scope (v0.2.0):
   ``.pytest_cache``, ``.opencode``, ``dist``, ``build``, ``.mypy_cache``,
   ``.ruff_cache``, ``htmlcov`` (hardcoded set).
 - Source code parsing limited to ``ast_extractor.supported_extensions()``
-  (``.py``, ``.js``, ``.ts``, ``.tsx``).
+  (``.py``, ``.js``, ``.ts``, ``.tsx``, ``.go``, ``.rs``, ``.java``,
+  ``.c``/``.cpp``/``.h``, ``.rb``, ``.php``, ``.tex``/``.ltx``).
 - Match results capped at 200 per call (sets ``truncated: true``).
 """
 
@@ -80,6 +81,8 @@ _LANGUAGE_NAME: dict[str, str] = {
     ".h": "c",
     ".rb": "ruby",
     ".php": "php",
+    ".tex": "latex",
+    ".ltx": "latex",
 }
 """Display name for each supported extension."""
 
@@ -206,7 +209,9 @@ class CodebaseIndex:
         Walks every supported-language file under the project root and
         runs a tree-sitter-based name match. ``language`` filters to a
         single language (``"python"``, ``"javascript"``,
-        ``"typescript"``, ``"tsx"``).
+        ``"typescript"``, ``"tsx"``, ``"go"``, ``"rust"``,
+        ``"java"``, ``"c"``, ``"cpp"``, ``"ruby"``, ``"php"``,
+        ``"latex"``).
 
         Args:
             name: Symbol name to search for (exact match).
@@ -368,13 +373,3 @@ class CodebaseIndex:
     def _rel(self, path: Path) -> str:
         """Return *path* relative to the project root as a POSIX string."""
         return path.relative_to(self._root).as_posix()
-
-
-# ---------------------------------------------------------------------------
-# Module-level convenience
-# ---------------------------------------------------------------------------
-
-
-def supported_languages() -> list[str]:
-    """Return the list of human-readable language names this index handles."""
-    return sorted(set(_LANGUAGE_NAME.values()))

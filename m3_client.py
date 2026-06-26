@@ -285,6 +285,9 @@ def _reasoning_extra_body(model: str) -> dict[str, Any] | None:
         body["thinking"] = {"type": "enabled"}
     body["reasoning_effort"] = config.DEEPSEEK_REASONING_EFFORT
     return body
+
+
+def _strip_markdown_fence(text: str) -> str:
     """Remove a leading/trailing ```json (or ```) fence from *text*.
 
     Some chat models wrap JSON in a markdown code fence despite being told

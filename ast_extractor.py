@@ -1,7 +1,8 @@
 """Multi-language AST extractor using tree-sitter.
 
-Supports Python, JavaScript, and TypeScript with graceful fallback
-when language grammars are not installed. Provides:
+Supports Python, JavaScript, TypeScript, Go, Rust, Java, C/C++,
+Ruby, PHP, and LaTeX with graceful fallback when language grammars
+are not installed. Provides:
 - extract_function_code: Find a specific function by name
 - get_skeleton: Compact structural outline of a file
 - get_ast_json: Structured JSON representation of file nodes
@@ -191,6 +192,28 @@ try:
 except ImportError:
     logger.info("tree-sitter-php not installed — .php files unsupported")
 
+# LaTeX (optional — requires tree-sitter-latex from git)
+try:
+    import tree_sitter_latex as tslatex
+
+    _LANGUAGES[".tex"] = (
+        Language(tslatex.language()),
+        {
+            "function_node": "generic_command",
+            "class_node": "generic_environment",
+            "method_node": "generic_command",
+            "extra_nodes": [
+                "section", "subsection", "subsubsection",
+                "paragraph", "subparagraph", "chapter", "part",
+                "new_command_definition", "old_command_definition",
+                "environment_definition", "theorem_definition",
+            ],
+        },
+    )
+    _LANGUAGES[".ltx"] = _LANGUAGES[".tex"]
+except ImportError:
+    logger.info("tree-sitter-latex not installed — .tex/.ltx files unsupported")
+
 
 def detect_language(filepath: str) -> str:
     """Return the lowercase file extension (e.g. '.py', '.ts')."""
@@ -378,7 +401,7 @@ class ASTExtractor:
             ".py": "python", ".js": "javascript", ".ts": "typescript", ".tsx": "tsx",
             ".go": "go", ".rs": "rust", ".java": "java", ".c": "c",
             ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".hpp": "cpp", ".h": "c",
-            ".rb": "ruby", ".php": "php",
+            ".rb": "ruby", ".php": "php", ".tex": "latex", ".ltx": "latex",
         }.get(ext, ext)
 
         tree = parser.parse(source_code)
@@ -386,16 +409,23 @@ class ASTExtractor:
         func_type = config["function_node"]
         class_type = config["class_node"]
         method_type = config["method_node"]
+        extra_types = config.get("extra_nodes", [])
 
         for node in tree.root_node.children:
             if node.type == class_type:
                 name = self._get_identifier(node)
                 methods: list[str] = []
+                found_body = False
                 for child in node.children:
                     if child.type in ("block", "class_body"):
+                        found_body = True
                         for item in child.children:
-                            if item.type in (method_type, func_type):
+                            if item.type in (method_type, func_type) or item.type in extra_types:
                                 methods.append(self._get_identifier(item))
+                if not found_body:
+                    for child in node.children:
+                        if child.type in (method_type, func_type) or child.type in extra_types:
+                            methods.append(self._get_identifier(child))
                 nodes.append(
                     {
                         "type": "class",
@@ -405,7 +435,7 @@ class ASTExtractor:
                         "methods": methods,
                     }
                 )
-            elif node.type == func_type:
+            elif node.type == func_type or node.type in extra_types:
                 name = self._get_identifier(node)
                 params = self._get_params(node, source_code)
                 nodes.append(
@@ -446,6 +476,35 @@ class ASTExtractor:
                 "constant", "name",
             ):
                 return child.text.decode("utf-8")
+
+        # LaTeX-specific name extraction — commands use command_name and
+        # curly groups for their textual identity.
+        for child in node.children:
+            if child.type == "command_name":
+                return child.text.decode("utf-8")
+            if child.type == "curly_group_command_name":
+                for sub in child.children:
+                    if sub.type == "command_name":
+                        return sub.text.decode("utf-8")
+            if child.type in ("curly_group_text", "curly_group"):
+                for sub in child.children:
+                    if sub.type == "word":
+                        return sub.text.decode("utf-8")
+                    if sub.type == "text":
+                        for w in sub.children:
+                            if w.type == "word":
+                                return w.text.decode("utf-8")
+            # LaTeX environments nest the name inside begin/end children
+            if child.type in ("begin", "end"):
+                for sub in child.children:
+                    if sub.type == "curly_group_text":
+                        for w in sub.children:
+                            if w.type == "word":
+                                return w.text.decode("utf-8")
+                            if w.type == "text":
+                                for word in w.children:
+                                    if word.type == "word":
+                                        return word.text.decode("utf-8")
 
         # Only recurse into containers that are known name-wrappers.
         _NAME_CONTAINERS = {
@@ -491,18 +550,26 @@ class ASTExtractor:
         func_type = config["function_node"]
         class_type = config["class_node"]
         method_type = config["method_node"]
+        extra_types = config.get("extra_nodes", [])
 
         for node in tree.root_node.children:
             if node.type == class_type:
                 name = ASTExtractor._get_identifier(node)
                 lines.append(f"class {name}:")
+                found_body = False
                 for child in node.children:
                     if child.type in ("block", "class_body"):
+                        found_body = True
                         for item in child.children:
-                            if item.type in (method_type, func_type):
+                            if item.type in (method_type, func_type) or item.type in extra_types:
                                 fn_name = ASTExtractor._get_identifier(item)
                                 lines.append(f"  def {fn_name}(...)")
-            elif node.type == func_type:
+                if not found_body:
+                    for child in node.children:
+                        if child.type in (method_type, func_type) or child.type in extra_types:
+                            fn_name = ASTExtractor._get_identifier(child)
+                            lines.append(f"  def {fn_name}(...)")
+            elif node.type == func_type or node.type in extra_types:
                 name = ASTExtractor._get_identifier(node)
                 lines.append(f"def {name}(...)")
 
@@ -529,6 +596,7 @@ class ASTExtractor:
         func_type = config["function_node"]
         class_type = config["class_node"]
         method_type = config["method_node"]
+        extra_types = config.get("extra_nodes", [])
 
         def _visit(node, depth: int = 0) -> None:
             """Walk the top level, recursing into export/lexical wrappers."""
@@ -543,10 +611,12 @@ class ASTExtractor:
                             "end_line": node.end_point[0] + 1,
                         }
                     )
+                found_body = False
                 for child in node.children:
                     if child.type in ("block", "class_body"):
+                        found_body = True
                         for item in child.children:
-                            if item.type in (method_type, func_type):
+                            if item.type in (method_type, func_type) or item.type in extra_types:
                                 m_name = ASTExtractor._get_identifier(item)
                                 if m_name == name:
                                     matches.append(
@@ -557,7 +627,20 @@ class ASTExtractor:
                                             "end_line": item.end_point[0] + 1,
                                         }
                                     )
-            elif node.type == func_type:
+                if not found_body:
+                    for child in node.children:
+                        if child.type in (method_type, func_type) or child.type in extra_types:
+                            m_name = ASTExtractor._get_identifier(child)
+                            if m_name == name:
+                                matches.append(
+                                    {
+                                        "name": m_name,
+                                        "type": "method",
+                                        "start_line": child.start_point[0] + 1,
+                                        "end_line": child.end_point[0] + 1,
+                                    }
+                                )
+            elif node.type == func_type or node.type in extra_types:
                 fn_name = ASTExtractor._get_identifier(node)
                 if fn_name == name:
                     matches.append(

@@ -13,7 +13,7 @@
                     │              server.py                       │
                     │   FastMCP("opencode-ast")                    │
                     │                                              │
-                    │   • 9 @mcp.tool() registrations              │
+                     │   • 13 @mcp.tool() registrations              │
                     │   • 1h idle monitor thread (auto-shutdown)   │
                     │   • @activity_tracker decorator on every tool│
                     │   • Lazy singletons for extractor/lm/sandbox │

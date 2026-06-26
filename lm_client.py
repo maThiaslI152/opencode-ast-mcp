@@ -2,7 +2,6 @@
 
 Connects to a local LM Studio instance (Qwen 18B) for:
 - Code analysis with structured JSON output
-- AST-to-JSON conversion
 - Error log compression (≤2 sentences)
 
 Implements thermal cooldown (Gotcha C) between inference calls.
@@ -11,7 +10,6 @@ Implements thermal cooldown (Gotcha C) between inference calls.
 from __future__ import annotations
 
 import json
-import re
 import time
 
 import requests
@@ -34,7 +32,7 @@ class LMStudioClient:
     # Existing method — Security analysis of extracted code nodes
     # ------------------------------------------------------------------
 
-    def analyze_node(self, extracted_data: dict) -> dict:
+    def analyze_node(self, extracted_data: dict, question: str | None = None) -> dict:
         """Analyze an AST-extracted code chunk for security and data flow.
 
         Expects *extracted_data* to have a ``code`` key (as produced by
@@ -45,11 +43,10 @@ class LMStudioClient:
         if "error" in extracted_data:
             return extracted_data
 
-        # Construct the targeted prompt using the extracted source code
-        user_prompt = f"""Analyze this isolated code chunk:
-
-{extracted_data['code']}
-"""
+        prompt_parts = [f"Analyze this isolated code chunk:\n\n{extracted_data['code']}"]
+        if question:
+            prompt_parts.insert(0, f"Question: {question}\n")
+        user_prompt = "\n".join(prompt_parts)
 
         # Define the exact JSON schema to enforce Grammar-Based Decoding via API
         json_schema = {
@@ -167,61 +164,6 @@ class LMStudioClient:
             return "[LM Studio unavailable — raw log attached]"
         except Exception as e:
             return f"[Compression failed: {e}]"
-
-    # ------------------------------------------------------------------
-    # New method — AST-to-JSON extraction
-    # ------------------------------------------------------------------
-
-    def extract_ast_json(self, source: str, schema_hint: str) -> dict:
-        """Convert raw AST text into clean JSON using the local model.
-
-        Uses ``response_format: json_object`` for models that support it,
-        with a regex fallback to strip markdown fences.
-        """
-        payload = {
-            "model": self.model_id,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "Convert the following AST dump into clean JSON. "
-                        "Respond ONLY with valid JSON."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Desired schema: {schema_hint}\n"
-                        f"AST:\n```\n{source}\n```"
-                    ),
-                },
-            ],
-            "temperature": 0.0,
-            "repeat_penalty": 1.05,
-            "response_format": {"type": "json_object"},
-        }
-
-        try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions", json=payload
-            )
-            response.raise_for_status()
-            raw = response.json()["choices"][0]["message"]["content"]
-            # Gotcha C: thermal cooldown
-            time.sleep(THERMAL_COOLDOWN_SECONDS)
-        except requests.exceptions.ConnectionError:
-            return {"error": "Could not connect to LM Studio."}
-        except Exception as e:
-            return {"error": str(e)}
-
-        # Strip markdown fences if present (fallback)
-        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
-        raw = re.sub(r"```\s*$", "", raw, flags=re.MULTILINE)
-
-        try:
-            return json.loads(raw.strip())
-        except json.JSONDecodeError:
-            return {"error": f"Failed to parse JSON. Raw: {raw[:500]}"}
 
 
 # --- Local Testing Block ---

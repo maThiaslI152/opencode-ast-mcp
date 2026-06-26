@@ -7,7 +7,7 @@
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-1.28-purple?logo=modelcontextprotocol)](https://modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: 35 passing](https://img.shields.io/badge/tests-35%20passing-brightgreen)](tests/)
+[![Tests: 73 passing](https://img.shields.io/badge/tests-73%20passing-brightgreen)](tests/)
 [![Sandbox: Podman](https://img.shields.io/badge/sandbox-podman-892CA0?logo=podman&logoColor=white)](sandbox/)
 
 ---
@@ -25,13 +25,13 @@ agent spends its context window on *code*, not on boilerplate.
 ## Features
 
 - **13 MCP tools** in a single Python server (FastMCP + stdio)
-- **tree-sitter** AST extraction for Python, JavaScript, TypeScript, TSX
+- **tree-sitter** AST extraction for Python, JavaScript, TypeScript, TSX, Go, Rust, Java, C/C++, Ruby, PHP, LaTeX
 - **Project-wide codebase awareness** — recursive file listing, overview with skeletons, cross-file symbol search, AST-aware reference finder (mtime-cached)
 - **Local LLM** analysis via LM Studio + Qwen 18B (no cloud for code review)
 - **Cloud planning** via any OpenAI-compatible endpoint (default: DeepSeek, works with OpenRouter, OpenAI, ollama)
 - **Podman sandbox** for test execution with hardened mount validation
 - **Autonomous code→test→fix loop** with a 5-iteration circuit breaker
-- **59 pytest tests**, all runnable in the sandbox
+- **75 pytest tests**, all runnable in the sandbox
 
 ---
 
@@ -183,7 +183,7 @@ opencode-ast-mcp/
 ├── LICENSE                # MIT
 ├── .env.example           # Template for .env
 ├── .github/
-│   ├── workflows/test.yml # CI: 59 pytest in Podman on every push/PR
+│   ├── workflows/test.yml # CI: 75 pytest in Podman on every push/PR
 │   └── dependabot.yml     # Dependabot for pip
 ├── sandbox/
 │   ├── Containerfile      # python:3.13-slim + pytest + git + patch
@@ -191,7 +191,7 @@ opencode-ast-mcp/
 ├── sdd/                   # Project's own SDD (product/tech/plan.md)
 ├── prompts/
 │   └── system_prompt.md   # Brain orchestrator system prompt
-├── tests/                 # pytest suite (59 tests)
+├── tests/                 # pytest suite (75 tests)
 ├── docs/                  # ARCHITECTURE / TOOLS / SETUP / TROUBLESHOOTING
 ├── AGENTS.md              # Guidance for AI coding agents
 ├── CHANGELOG.md           # Release history

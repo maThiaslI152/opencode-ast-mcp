@@ -418,3 +418,51 @@ class TestExtractorPhp:
         assert ast["language"] == "php"
         names = {n["name"] for n in ast["nodes"]}
         assert "add" in names or "Calculator" in names
+
+
+# ---------------------------------------------------------------------------
+# LaTeX (v0.3.0)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def latex_file(tmp_path):
+    p = tmp_path / "sample.tex"
+    p.write_text(
+        r"""\documentclass{article}
+
+\usepackage{amsmath}
+
+\begin{document}
+
+\section{Introduction}
+Hello world.
+
+\subsection{Background}
+More text.
+
+\begin{figure}[h]
+\caption{A sample figure}
+\end{figure}
+
+\newcommand{\mycmd}[1]{Custom: #1}
+
+\end{document}
+""",
+        encoding="utf-8",
+    )
+    return str(p)
+
+
+class TestExtractorLatex:
+    def test_skeleton(self, latex_file):
+        extractor = ASTExtractor()
+        skeleton = extractor.get_skeleton(latex_file)
+        assert "class document:" in skeleton
+        assert "def Introduction(...)" in skeleton or "Introduction" in skeleton
+
+    def test_ast_json(self, latex_file):
+        extractor = ASTExtractor()
+        ast = extractor.get_ast_json(latex_file)
+        assert ast["language"] == "latex"
+        names = {n["name"] for n in ast["nodes"]}
+        assert "document" in names or "Introduction" in names

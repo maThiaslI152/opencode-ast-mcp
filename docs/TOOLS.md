@@ -16,7 +16,7 @@ Return a compact outline of a file's top-level classes and functions.
 
 | Param | Type | Required | Notes |
 |-------|------|----------|-------|
-| `filepath` | string | yes | Absolute or relative path. Supported: `.py`, `.js`, `.ts`, `.tsx`, `.go`, `.rs`, `.java`, `.c`/`.cpp`/`.h`, `.rb`, `.php` |
+| `filepath` | string | yes | Absolute or relative path. Supported: `.py`, `.js`, `.ts`, `.tsx`, `.go`, `.rs`, `.java`, `.c`/`.cpp`/`.h`, `.rb`, `.php`, `.tex`/`.ltx` |
 
 **Returns:** human-readable string.
 
@@ -105,7 +105,7 @@ call after an edit — no background threads, no file-watcher.
   `.ruff_cache`, `htmlcov`.
 - Source parsing limited to `.py`, `.js`, `.ts`, `.tsx`,
   `.go`, `.rs`, `.java`, `.c`, `.cpp`/`.cc`/`.cxx`/`.hpp`/`.h`,
-  `.rb`, `.php` (11 languages total, v0.3.0).
+  `.rb`, `.php`, `.tex`/`.ltx` (12 languages total, v0.3.0).
 - Match results capped at 200 per call (response includes `truncated: true` if hit).
 
 ### 4. `list_files`
@@ -180,7 +180,7 @@ Optionally filter to a single language.
 | Param | Type | Required | Notes |
 |-------|------|----------|-------|
 | `name` | string | yes | Exact symbol name. |
-| `language` | string | no | Default `""` (all). One of `"python"`, `"javascript"`, `"typescript"`, `"tsx"`. |
+| `language` | string | no | Default `""` (all). One of `"python"`, `"javascript"`, `"typescript"`, `"tsx"`, `"go"`, `"rust"`, `"java"`, `"c"`, `"cpp"`, `"ruby"`, `"php"`, `"latex"`. |
 
 **Returns:**
 ```json
@@ -250,7 +250,7 @@ the same job.
 
 ## Local LLM Tools (Qwen 18B via LM Studio)
 
-### 4. `analyze_node`
+### 8. `analyze_node`
 
 Ask the local Qwen model to perform security / data-flow analysis on a
 named function or class.
@@ -276,7 +276,7 @@ code chunk without sending it to the cloud.
 
 ---
 
-### 5. `compress_log`
+### 9. `compress_log`
 
 Summarise a verbose error log to ≤2 sentences.
 
@@ -301,7 +301,7 @@ sending it back to M3 in the autonomous loop.
 
 ## Sandbox Tools (Podman)
 
-### 6. `execute_in_sandbox`
+### 10. `execute_in_sandbox`
 
 Run a single shell command in an ephemeral Podman container.
 
@@ -336,7 +336,7 @@ The container is destroyed after the command exits.
 
 ## Orchestration Tools (M3 + autonomous loop)
 
-### 7. `execute_autonomous_loop_tool`
+### 11. `execute_autonomous_loop_tool`
 
 Run a code → test → fix cycle for a single plan step.
 
@@ -396,7 +396,7 @@ to `MAX_AUTONOMOUS_ITERATIONS` (5) times.
 
 ---
 
-### 8. `generate_sdd`
+### 12. `generate_sdd`
 
 Ask M3 to generate product / tech / plan documents for a feature.
 
@@ -422,7 +422,7 @@ review and approve before any code is written.
 
 ---
 
-### 9. `get_loop_status`
+### 13. `get_loop_status`
 
 Read the `BLOCKED.md` file (if it exists) to see if the autonomous loop
 tripped the circuit breaker.

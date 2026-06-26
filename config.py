@@ -86,3 +86,19 @@ MAX_AUTONOMOUS_ITERATIONS: int = int(os.getenv("MAX_AUTONOMOUS_ITERATIONS", "5")
 
 THERMAL_COOLDOWN_SECONDS: float = float(os.getenv("THERMAL_COOLDOWN_SECONDS", "3.0"))
 """Pause (in seconds) between autonomous iterations to manage thermal load."""
+
+# ---------------------------------------------------------------------------
+# MCP Transport (stdio vs network)
+# ---------------------------------------------------------------------------
+
+MCP_TRANSPORT: str = os.getenv("MCP_TRANSPORT", "stdio")
+"""Transport protocol: ``"stdio"`` (default, for local IDE), ``"sse"``,
+or ``"streamable-http"``. Use ``"sse"`` or ``"streamable-http"`` to
+expose the server on the LAN."""
+
+MCP_HOST: str = os.getenv("MCP_HOST", "127.0.0.1")
+"""Bind address. Use ``"0.0.0.0"`` to accept connections from other
+machines on the LAN."""
+
+MCP_PORT: int = int(os.getenv("MCP_PORT", "8000"))
+"""Port the server listens on for SSE/HTTP transports."""

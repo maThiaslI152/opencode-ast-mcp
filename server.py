@@ -38,7 +38,7 @@ from ast_extractor import ASTExtractor
 from codebase_index import CodebaseIndex
 from lm_client import LMStudioClient
 from sandbox_runner import SandboxRunner, run_in_sandbox
-from config import get_project_root
+from config import get_project_root, MCP_HOST, MCP_PORT, MCP_TRANSPORT
 import threading
 import time
 from functools import wraps
@@ -69,7 +69,7 @@ def activity_tracker(func):
 # Initialise components
 # ---------------------------------------------------------------------------
 
-mcp = FastMCP("opencode-ast")
+mcp = FastMCP("opencode-ast", host=MCP_HOST, port=MCP_PORT)
 
 # Lazily initialised singletons (created on first tool call)
 _extractor: ASTExtractor | None = None
@@ -309,12 +309,12 @@ def analyze_node(filepath: str, node_name: str, question: str) -> str:
         and security_context.
     """
     extracted = _get_extractor().extract_function_code(filepath, node_name)
-    result = _get_lm_client().analyze_node(extracted)
+    result = _get_lm_client().analyze_node(extracted, question=question)
     return json.dumps(result, indent=2)
 
 
 # ===================================================================
-# Tool 5: compress_log (Local LLM — Qwen 18B)
+# Tool 9: compress_log (Local LLM — Qwen 18B)
 # ===================================================================
 
 @mcp.tool()
@@ -337,7 +337,7 @@ def compress_log(error_log: str) -> str:
 
 
 # ===================================================================
-# Tool 6: execute_in_sandbox (Podman)
+# Tool 10: execute_in_sandbox (Podman)
 # ===================================================================
 
 @mcp.tool()
@@ -370,7 +370,7 @@ def execute_in_sandbox(command: str) -> str:
 
 
 # ===================================================================
-# Tool 7: execute_autonomous_loop (M3 + Podman + Qwen)
+# Tool 11: execute_autonomous_loop (M3 + Podman + Qwen)
 # ===================================================================
 
 @mcp.tool()
@@ -430,7 +430,7 @@ def execute_autonomous_loop_tool(
 
 
 # ===================================================================
-# Tool 8: generate_sdd (M3)
+# Tool 12: generate_sdd (M3)
 # ===================================================================
 
 @mcp.tool()
@@ -472,7 +472,7 @@ def generate_sdd(feature_request: str, codebase_context: str = "") -> str:
 
 
 # ===================================================================
-# Tool 9: get_loop_status (Status check)
+# Tool 13: get_loop_status (Status check)
 # ===================================================================
 
 @mcp.tool()
@@ -497,4 +497,4 @@ def get_loop_status() -> str:
 # ===================================================================
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    mcp.run(transport=MCP_TRANSPORT)
