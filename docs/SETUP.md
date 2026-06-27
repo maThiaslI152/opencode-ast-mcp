@@ -95,7 +95,7 @@ to do this automatically if `lms` (the LM Studio CLI) is on your `PATH`:
 
 # Or do it manually:
 lms server start
-lms load qwen3.5-18b-a3b-reap-coding-heretic-v0-i1 --gpu max -c 16384 --yes
+lms load qwen3-vl-4b-instruct-c_abliterated-v2-mlx --gpu max -c 16384 --yes
 ```
 
 Verify it's serving:

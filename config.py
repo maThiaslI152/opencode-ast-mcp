@@ -60,7 +60,7 @@ LM_STUDIO_BASE: str = os.getenv("LM_STUDIO_BASE", "http://localhost:1234/v1")
 """Base URL for the local LM Studio server."""
 
 LM_STUDIO_MODEL: str = os.getenv(
-    "LM_STUDIO_MODEL", "qwen3.5-18b-a3b-reap-coding-heretic-v0-i1"
+    "LM_STUDIO_MODEL", "qwen3-vl-4b-instruct-c_abliterated-v2-mlx"
 )
 """Model identifier served by LM Studio."""
 

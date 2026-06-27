@@ -70,7 +70,7 @@ podman compose -f sandbox/compose.yaml build
 
 # 5. (Optional) Start LM Studio and load the Qwen model
 lms server start
-lms load qwen3.5-18b-a3b-reap-coding-heretic-v0-i1 --gpu max -c 16384 --yes
+lms load qwen3-vl-4b-instruct-c_abliterated-v2-mlx --gpu max -c 16384 --yes
 
 # 6. Register the MCP server in OpenCode
 #    Edit ~/.config/opencode/opencode.json and add:
@@ -250,7 +250,7 @@ checklist and **[SECURITY.md](SECURITY.md)** for private disclosure.
 
 - [tree-sitter](https://tree-sitter.github.io/tree-sitter/) — the AST
   parser that makes deterministic code analysis possible
-- [LM Studio](https://lmstudio.ai) + [Qwen 3.5 18B](https://huggingface.co/Qwen)
+- [LM Studio](https://lmstudio.ai) + [Qwen 3 VL 4B](https://huggingface.co/Qwen)
   — local inference for per-function code review
 - [Anthropic Claude](https://www.anthropic.com) via
   [OpenRouter](https://openrouter.ai) — cloud-side SDD planning

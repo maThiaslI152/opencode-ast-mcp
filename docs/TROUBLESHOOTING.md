@@ -132,7 +132,7 @@ toggle). The `lms` CLI comes with the LM Studio app.
 
 ### Cause: model not loaded
 **Symptom:** connection succeeds but `error: model "qwen3..." not found`.
-**Fix:** `lms load qwen3.5-18b-a3b-reap-coding-heretic-v0-i1 --gpu max -c 16384 --yes`
+**Fix:** `lms load qwen3-vl-4b-instruct-c_abliterated-v2-mlx --gpu max -c 16384 --yes`
 (or whatever model id matches `LM_STUDIO_MODEL` in `.env`).
 
 ### Cause: model not in `tools` view of LM Studio
