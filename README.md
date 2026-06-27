@@ -1,7 +1,7 @@
 # Opencode AST MCP Server
 
 > Turn any MCP-aware IDE (OpenCode, Claude Desktop, etc.) into an agentic
-> coding system backed by tree-sitter, a local Qwen 18B, OpenRouter
+> coding system backed by tree-sitter, a local Qwen 3 VL 4B, OpenRouter
 > (Claude Haiku by default), and Podman.
 
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
@@ -27,7 +27,7 @@ agent spends its context window on *code*, not on boilerplate.
 - **13 MCP tools** in a single Python server (FastMCP + stdio)
 - **tree-sitter** AST extraction for Python, JavaScript, TypeScript, TSX, Go, Rust, Java, C/C++, Ruby, PHP, LaTeX
 - **Project-wide codebase awareness** — recursive file listing, overview with skeletons, cross-file symbol search, AST-aware reference finder (mtime-cached)
-- **Local LLM** analysis via LM Studio + Qwen 18B (no cloud for code review)
+- **Local LLM** analysis via LM Studio + Qwen 3 VL 4B (no cloud for code review)
 - **Cloud planning** via any OpenAI-compatible endpoint (default: DeepSeek, works with OpenRouter, OpenAI, ollama)
 - **Podman sandbox** for test execution with hardened mount validation
 - **Autonomous code→test→fix loop** with a 5-iteration circuit breaker
@@ -174,7 +174,7 @@ opencode-ast-mcp/
 ├── config.py              # Centralised env-var configuration
 ├── ast_extractor.py       # tree-sitter powered skeleton/JSON/extract
 ├── codebase_index.py      # Mtime-cached recursive project index (v0.2.0)
-├── lm_client.py           # LM Studio HTTP client (Qwen 18B)
+├── lm_client.py           # LM Studio HTTP client (Qwen 3 VL 4B)
 ├── m3_client.py           # LLM brain client (OpenAI-compatible)
 ├── sandbox_runner.py      # Podman container execution + safety checks
 ├── autonomous_loop.py     # Code→test→fix loop with circuit breaker

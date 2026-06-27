@@ -248,7 +248,7 @@ the same job.
 
 ---
 
-## Local LLM Tools (Qwen 18B via LM Studio)
+## Local LLM Tools (Qwen 3 VL 4B via LM Studio)
 
 ### 8. `analyze_node`
 

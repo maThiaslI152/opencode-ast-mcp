@@ -21,7 +21,7 @@
                          │              │               │
                 ┌────────▼────────┐ ┌───▼────────┐ ┌────▼──────────────┐
                 │  ast_extractor  │ │ lm_client  │ │  sandbox_runner   │
-                │  (tree-sitter)  │ │ (Qwen 18B) │ │  (Podman)         │
+                │  (tree-sitter)  │ │  (Qwen 3 VL 4B) │ │  (Podman)         │
                 │                 │ │ via LM     │ │  python:3.13-slim │
                 │  • .py          │ │ Studio     │ │  + pytest         │
                 │  • .js          │ │ local HTTP │ │  + pytest-cov     │

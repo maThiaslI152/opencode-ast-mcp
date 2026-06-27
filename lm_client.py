@@ -1,6 +1,6 @@
 """LM Studio client — The local Scout.
 
-Connects to a local LM Studio instance (Qwen 18B) for:
+Connects to a local LM Studio instance (Qwen 3 VL 4B) for:
 - Code analysis with structured JSON output
 - Error log compression (≤2 sentences)
 

@@ -13,7 +13,7 @@ Codebase Awareness Tools (recursive, mtime-cached):
   - search_symbol: Find functions/classes/methods by name across project
   - find_references: AST-aware identifier reference search
 
-Local LLM Tools (Qwen 18B via LM Studio):
+Local LLM Tools (Qwen 3 VL 4B via LM Studio):
   - analyze_node: Security & data-flow analysis of a code node
   - compress_log: Error log compression to ≤2 sentences
 
@@ -288,13 +288,13 @@ def find_references(name: str, filepath: str = "") -> str:
 
 
 # ===================================================================
-# Tool 8: analyze_node (Local LLM — Qwen 18B)
+# Tool 8: analyze_node (Local LLM — Qwen 3 VL 4B)
 # ===================================================================
 
 @mcp.tool()
 @activity_tracker
 def analyze_node(filepath: str, node_name: str, question: str) -> str:
-    """Use the local Qwen 18B model to analyze a specific code node.
+    """Use the local Qwen 3 VL 4B model to analyze a specific code node.
 
     Extracts the node via AST, then sends it to LM Studio for
     security analysis, data-flow extraction, or general questions.
@@ -314,7 +314,7 @@ def analyze_node(filepath: str, node_name: str, question: str) -> str:
 
 
 # ===================================================================
-# Tool 9: compress_log (Local LLM — Qwen 18B)
+# Tool 9: compress_log (Local LLM — Qwen 3 VL 4B)
 # ===================================================================
 
 @mcp.tool()

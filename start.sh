@@ -18,7 +18,7 @@ if [ -f "${PROJECT_DIR}/.env" ]; then
     export $(grep -v '^#' "${PROJECT_DIR}/.env" | xargs)
 fi
 
-LM_MODEL=${LM_STUDIO_MODEL:-"qwen3.5-18b-a3b-reap-coding-heretic-v0-i1"}
+LM_MODEL=${LM_STUDIO_MODEL:-"qwen3-vl-4b-instruct-c_abliterated-v2-mlx"}
 
 # Start LM Studio Server and load the model (Correct config for AST analysis)
 if command -v lms >/dev/null 2>&1; then

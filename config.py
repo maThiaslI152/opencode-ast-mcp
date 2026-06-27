@@ -53,7 +53,7 @@ trace alongside the response). The trace is visible in stderr logs but
 does not affect the JSON output consumed by generate_sdd."""
 
 # ---------------------------------------------------------------------------
-# LM Studio (Local Worker – Qwen 18B)
+# LM Studio (Local Worker — Qwen 3 VL 4B)
 # ---------------------------------------------------------------------------
 
 LM_STUDIO_BASE: str = os.getenv("LM_STUDIO_BASE", "http://localhost:1234/v1")
